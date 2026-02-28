@@ -1,0 +1,35 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This mutation is for seeding initial data and can be run by any authenticated user.") {
+  user_insert(data: {
+    id_expr: "uuidV4()",
+    displayName: "Demo User",
+    email: "demo.user@example.com",
+    createdAt_expr: "request.time"
+  }) { id }
+  account_insert(data: {
+    userId_expr: "auth.uid",
+    name: "Checking Account",
+    type: "Checking",
+    balance: 1500.00,
+    createdAt_expr: "request.time",
+    description: "Primary checking account for daily expenses",
+    bankName: "Firebase Bank"
+  }) { id }
+  category_insert(data: {
+    userId_expr: "auth.uid",
+    name: "Groceries",
+    type: "Expense",
+    createdAt_expr: "request.time",
+    description: "Food and household items",
+    icon: "shopping_cart"
+  }) { id }
+  transaction_insert(data: {
+    userId_expr: "auth.uid",
+    accountId: "REPLACE_WITH_ACCOUNT_ID_FROM_PREVIOUS_INSERT",
+    categoryId: "REPLACE_WITH_CATEGORY_ID_FROM_PREVIOUS_INSERT",
+    description: "Weekly grocery shopping",
+    amount: 75.50,
+    date: "2024-05-15",
+    type: "Debit",
+    createdAt_expr: "request.time"
+  }) { id }
+}

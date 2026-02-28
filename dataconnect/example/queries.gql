@@ -1,0 +1,46 @@
+query ListUserTransactions @auth(level: USER) {
+  transactions(where: {userId: {eq_expr: "auth.uid"}}, orderBy: [{date: DESC}]) {
+    id
+    description
+    amount
+    date
+    type
+    account {
+      name
+      bankName
+    }
+    category {
+      name
+    }
+  }
+}
+
+mutation CreateCategoryForUser($name: String!, $type: String!, $description: String, $icon: String) @auth(level: USER) {
+  category_insert(data: {
+    userId_expr: "auth.uid",
+    name: $name,
+    type: $type,
+    description: $description,
+    icon: $icon,
+    createdAt_expr: "request.time"
+  })
+}
+
+mutation UpdateUserDisplayName($displayName: String!) @auth(level: USER) {
+  user_update(
+    key: {id_expr: "auth.uid"},
+    data: {
+      displayName: $displayName
+    }
+  )
+}
+
+query GetPublicCategories @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it returns general category information.") {
+  categories(where: {user: {id: {eq: "public_user_id"}}} ) { # Assuming a 'public_user_id' for public categories
+    id
+    name
+    type
+    description
+    icon
+  }
+}
