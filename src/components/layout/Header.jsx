@@ -1,10 +1,9 @@
 export default function Header() {
   return (
-    <div className="h-16 bg-white shadow flex items-center justify-between px-6">
-      <h2 className="text-xl font-semibold">Dashboard</h2>
-      <div className="text-sm text-gray-500">
+    <div className="bg-gray-900 border-b border-gray-800 px-8 py-4 flex justify-between items-center">
+      <h1 className="bg-gray-900 text-lg font-semibold text-gray-200">
         Sistema de Controle de Boletos
-      </div>
+      </h1>
     </div>
   );
 }

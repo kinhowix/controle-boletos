@@ -27,7 +27,7 @@ export default function BoletosTable({
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow">
+    <div className="bg-gray-800 p-6 rounded-xl shadow">
 
       <table className="w-full">
 
@@ -75,7 +75,7 @@ export default function BoletosTable({
                     onClick={() =>
                       excluir(b.id)
                     }
-                    className="text-red-600"
+                    className="text-white bg-blue-600 px-3 py-1 rounded"
                   >
                     Excluir
                   </button>

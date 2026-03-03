@@ -51,7 +51,6 @@ export default function NovoBoleto() {
   // =========================
 
   function selecionarEmpresa(id) {
-
     setEmpresaId(id);
 
     const emp = empresas.find(
@@ -112,11 +111,9 @@ export default function NovoBoleto() {
   async function importarXML(e) {
 
     const file = e.target.files[0];
-
     if (!file) return;
 
     const texto = await file.text();
-
     const dados = lerXMLNFe(texto);
 
     if (!dados) {
@@ -130,12 +127,8 @@ export default function NovoBoleto() {
     setCnpjNF(dados.cnpj);
 
     if (dados.data) {
-      setVencimento(
-        dados.data.substring(0, 10)
-      );
+      setVencimento(dados.data.substring(0, 10));
     }
-
-    // verificar duplicado
 
     const duplicado = await existeNota(
       dados.numero,
@@ -147,13 +140,7 @@ export default function NovoBoleto() {
       return;
     }
 
-    // buscar empresa
-
-    let emp = await getEmpresaByCNPJ(
-      dados.cnpj
-    );
-
-    // criar se não existir
+    let emp = await getEmpresaByCNPJ(dados.cnpj);
 
     if (!emp) {
 
@@ -175,8 +162,6 @@ export default function NovoBoleto() {
       await carregarEmpresas();
     }
 
-    // definir empresa
-
     setEmpresaId(emp.id);
     setEmpresaNome(emp.razao);
   }
@@ -186,40 +171,37 @@ export default function NovoBoleto() {
   // =========================
 
   return (
-    <div className="flex">
+    <div className="flex bg-gray-900 text-gray-100 min-h-screen">
 
       <Sidebar />
 
-      <div className="flex-1 bg-gray-100 min-h-screen">
+      <div className="flex-1 bg-gray-950">
 
         <Header />
 
-        <div className="p-6">
+        <div className="p-8">
 
-          <h1 className="text-2xl font-bold mb-4">
+          <h1 className="text-2xl font-semibold mb-6">
             Novo Boleto
           </h1>
 
-          <div className="bg-white p-6 rounded-xl shadow">
+          <div className="bg-gray-800 p-8 rounded-2xl shadow-lg">
 
             {/* XML */}
-
             <input
               type="file"
               accept=".xml"
               onChange={importarXML}
-              className="mb-4"
+              className="mb-6 bg-gray-800 border border-gray-600 p-2 rounded text-gray-200 w-full"
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
 
               <select
-                className="border p-2 rounded"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={empresaId}
                 onChange={(e) =>
-                  selecionarEmpresa(
-                    e.target.value
-                  )
+                  selecionarEmpresa(e.target.value)
                 }
               >
                 <option value="">
@@ -234,12 +216,11 @@ export default function NovoBoleto() {
                     {e.razao}
                   </option>
                 ))}
-
               </select>
 
               <input
                 placeholder="Valor"
-                className="border p-2 rounded"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={valor}
                 onChange={(e) =>
                   setValor(e.target.value)
@@ -248,49 +229,44 @@ export default function NovoBoleto() {
 
               <input
                 type="date"
-                className="border p-2 rounded"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={vencimento}
                 onChange={(e) =>
-                  setVencimento(
-                    e.target.value
-                  )
+                  setVencimento(e.target.value)
                 }
               />
 
               <input
                 placeholder="Descrição"
-                className="border p-2 rounded"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={descricao}
                 onChange={(e) =>
-                  setDescricao(
-                    e.target.value
-                  )
+                  setDescricao(e.target.value)
                 }
               />
 
             </div>
 
             {/* BOTÕES */}
-
-            <div className="mt-6 flex gap-4">
+            <div className="mt-8 flex gap-4">
 
               <button
                 onClick={salvar}
-                className="bg-green-600 text-white px-4 py-2 rounded"
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white transition"
               >
                 Salvar boleto
               </button>
 
               <button
                 onClick={() => navigate("/dashboard")}
-                className="bg-gray-500 text-white px-4 py-2 rounded"
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white transition"
               >
                 Voltar
               </button>
 
               <button
                 onClick={() => navigate("/login")}
-                className="bg-red-600 text-white px-4 py-2 rounded"
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white transition"
               >
                 Sair
               </button>

@@ -35,7 +35,6 @@ export default function Dashboard() {
     return new Date(vencimento);
   }
 
-  // 🔎 FILTRO
   const boletosFiltrados = boletos.filter((b) => {
     const data = converterData(b.vencimento);
 
@@ -50,7 +49,11 @@ export default function Dashboard() {
     return filtroMes && filtroEmpresa;
   });
 
-  // 📈 AGRUPAR POR MÊS
+  const nomesMeses = [
+    "Jan","Fev","Mar","Abr","Mai","Jun",
+    "Jul","Ago","Set","Out","Nov","Dez"
+  ];
+
   const dadosGrafico = [];
 
   for (let i = 1; i <= 12; i++) {
@@ -63,32 +66,37 @@ export default function Dashboard() {
     }, 0);
 
     dadosGrafico.push({
-      mes: i,
+      mes: nomesMeses[i - 1],
       total,
     });
   }
 
   return (
-    <div className="flex">
+    <div className="flex bg-gray-900 text-gray-100 min-h-screen">
+
       <Sidebar />
 
-      <div className="flex-1 bg-gray-100 min-h-screen">
+      <div className="flex-1 bg-gray-950">
+
         <Header />
 
-        <div className="p-6">
+        <div className="p-8">
 
           {/* FILTROS */}
-          <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4">
+          <div className="bg-gray-800 p-4 rounded-2xl shadow-lg mb-8 flex gap-4">
 
             <select
               value={mesFiltro}
               onChange={(e) => setMesFiltro(e.target.value)}
-              className="p-2 border rounded-lg"
+              className="p-2 border rounded-lg bg-gray-600 dark:bg-gray-800 dark:text-white"
             >
               <option value="">Todos os meses</option>
-              {[...Array(12)].map((_, i) => (
+              {[
+                "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+              ].map((nome, i) => (
                 <option key={i} value={i + 1}>
-                  Mês {i + 1}
+                  {nome}
                 </option>
               ))}
             </select>
@@ -96,7 +104,7 @@ export default function Dashboard() {
             <input
               type="text"
               placeholder="Buscar empresa..."
-              className="p-2 border rounded-lg"
+              className="p-2 rounded-lg bg-gray-700 border border-gray-600 text-white"
               value={buscaEmpresa}
               onChange={(e) => setBuscaEmpresa(e.target.value)}
             />
@@ -107,17 +115,17 @@ export default function Dashboard() {
           <BoletosTable boletos={boletosFiltrados} />
 
           {/* GRÁFICO */}
-          <div className="bg-white p-6 rounded-xl shadow mt-6">
-            <h2 className="text-xl font-bold mb-4">
+          <div className="bg-gray-800 p-6 rounded-2xl shadow-lg mt-8">
+            <h2 className="text-xl font-semibold mb-6 text-gray-200">
               Total por Mês
             </h2>
 
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dadosGrafico}>
-                <XAxis dataKey="mes" />
-                <YAxis />
+                <XAxis dataKey="mes" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
                 <Tooltip />
-                <Bar dataKey="total" />
+                <Bar dataKey="total" fill="#3b82f6" radius={[6,6,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -7,13 +7,14 @@ export default function Sidebar() {
   function linkClass(path) {
     return location.pathname === path
       ? "block p-3 rounded-lg bg-blue-600 text-white"
-      : "block p-3 rounded-lg hover:bg-gray-200";
+      : "block p-3 rounded-lg hover:bg-gray-600 text-gray-300";
   }
 
   return (
-    <div className="w-64 bg-white shadow-lg min-h-screen p-6">
-
-      <h2 className="text-2xl font-bold mb-8">Financeiro</h2>
+    <div className="w-64 bg-gray-950 border-r border-gray-800 p-6">
+      <h2 className="text-xl font-bold text-gray-200 mb-8">
+        Financeiro
+      </h2>
 
       <nav className="space-y-3">
 

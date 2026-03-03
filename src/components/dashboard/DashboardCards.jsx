@@ -51,28 +51,28 @@ export default function DashboardCards({ boletos }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
 
-      <div className="bg-white p-6 rounded-2xl shadow">
+      <div className="bg-gray-800 p-6 rounded-2xl shadow">
         <p className="text-gray-500">Total do Mês</p>
         <h3 className="text-2xl font-bold text-blue-600">
           R$ {totalMes.toFixed(2)}
         </h3>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow">
+      <div className="bg-gray-800 p-6 rounded-2xl shadow">
         <p className="text-gray-500">Vencem Hoje</p>
         <h3 className="text-2xl font-bold text-red-600">
           {vencemHoje.length}
         </h3>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow">
+      <div className="bg-gray-800 p-6 rounded-2xl shadow">
         <p className="text-gray-500">Vencidos</p>
         <h3 className="text-2xl font-bold text-orange-600">
           {vencidos.length}
         </h3>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow">
+      <div className="bg-gray-800 p-6 rounded-2xl shadow">
         <p className="text-gray-500">Total de Boletos</p>
         <h3 className="text-2xl font-bold text-green-600">
           {boletos.length}

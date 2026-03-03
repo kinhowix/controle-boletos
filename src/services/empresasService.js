@@ -17,7 +17,8 @@ export async function getEmpresas() {
 }
 
 export async function addEmpresa(empresa) {
-  await addDoc(ref, empresa);
+  const docRef = await addDoc(ref, empresa);
+  return docRef.id;
 }
 
 export async function getEmpresaByCNPJ(cnpj) {
