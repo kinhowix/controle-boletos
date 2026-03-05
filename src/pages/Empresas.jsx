@@ -23,15 +23,52 @@ export default function Empresas() {
     setEmpresas(dados);
   }
 
+  // =========================
+  // MÁSCARA CNPJ
+  // =========================
+
+  function formatarCNPJ(valor) {
+
+    let numeros = valor.replace(/\D/g, "");
+
+    if (numeros.length > 14) {
+      numeros = numeros.slice(0, 14);
+    }
+
+    numeros = numeros.replace(/^(\d{2})(\d)/, "$1.$2");
+    numeros = numeros.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    numeros = numeros.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    numeros = numeros.replace(/(\d{4})(\d)/, "$1-$2");
+
+    return numeros;
+  }
+
+  function handleCNPJ(e) {
+    const valor = e.target.value;
+    setCnpj(formatarCNPJ(valor));
+  }
+
+  function limparCNPJ(valor) {
+    return valor.replace(/\D/g, "");
+  }
+
+  // =========================
+  // BUSCAR CNPJ
+  // =========================
+
   async function buscarCNPJ() {
-    if (cnpj.length < 14) {
+
+    const cnpjLimpo = limparCNPJ(cnpj);
+
+    if (cnpjLimpo.length < 14) {
       alert("CNPJ inválido");
       return;
     }
 
     try {
+
       const res = await fetch(
-        `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`
+        `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`
       );
 
       const data = await res.json();
@@ -46,14 +83,21 @@ export default function Empresas() {
     }
   }
 
+  // =========================
+  // SALVAR
+  // =========================
+
   async function salvar() {
+
     if (!razao) {
       alert("Informe a empresa");
       return;
     }
 
+    const cnpjLimpo = limparCNPJ(cnpj);
+
     await addEmpresa({
-      cnpj,
+      cnpj: cnpjLimpo,
       razao,
       fantasia,
       cidade,
@@ -85,7 +129,7 @@ export default function Empresas() {
             placeholder="CNPJ"
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+            onChange={handleCNPJ}
           />
 
           <button
