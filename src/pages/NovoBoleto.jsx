@@ -4,10 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
 
-import {
-  addBoleto,
-  existeNota,
-} from "../services/boletosService";
+import { addBoleto, existeNota } from "../services/boletosService";
 
 import {
   getEmpresas,
@@ -21,21 +18,23 @@ export default function NovoBoleto() {
 
   const navigate = useNavigate();
 
-  const [numeroNF, setNumeroNF] = useState("");
-  const [cnpjNF, setCnpjNF] = useState("");
-
   const [empresas, setEmpresas] = useState([]);
+  const [buscaEmpresa, setBuscaEmpresa] = useState("");
 
   const [empresaId, setEmpresaId] = useState("");
   const [empresaNome, setEmpresaNome] = useState("");
 
-  const [valor, setValor] = useState("");
-  const [vencimento, setVencimento] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [novaEmpresa, setNovaEmpresa] = useState("");
 
-  // =========================
-  // LOAD EMPRESAS
-  // =========================
+  const [valor, setValor] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [vencimento, setVencimento] = useState("");
+
+  const [numeroNF, setNumeroNF] = useState("");
+  const [cnpjNF, setCnpjNF] = useState("");
+
+  const [grupo, setGrupo] = useState("");
+  const [parcelas, setParcelas] = useState(1);
 
   useEffect(() => {
     carregarEmpresas();
@@ -46,11 +45,8 @@ export default function NovoBoleto() {
     setEmpresas(dados || []);
   }
 
-  // =========================
-  // SELECIONAR EMPRESA
-  // =========================
-
   function selecionarEmpresa(id) {
+
     setEmpresaId(id);
 
     const emp = empresas.find(
@@ -62,50 +58,89 @@ export default function NovoBoleto() {
     }
   }
 
+  async function criarEmpresaManual() {
+
+    if (!novaEmpresa) {
+      alert("Digite o nome da empresa");
+      return;
+    }
+
+    const novoId = await addEmpresa({
+      razao: novaEmpresa,
+      cnpj: "",
+    });
+
+    await carregarEmpresas();
+
+    setEmpresaId(novoId);
+    setEmpresaNome(novaEmpresa);
+
+    setNovaEmpresa("");
+  }
+
   // =========================
-  // SALVAR
+  // SALVAR BOLETO
   // =========================
 
   async function salvar() {
 
-    if (!empresaId || empresaId === "") {
-      alert("Empresa não definida");
+    if (!empresaId) {
+      alert("Selecione empresa");
       return;
     }
 
-    if (!numeroNF) {
-      alert("NF não definida");
+    if (!valor) {
+      alert("Informe valor");
       return;
     }
 
-    const duplicado = await existeNota(
-      numeroNF,
-      cnpjNF
-    );
+    if (numeroNF) {
 
-    if (duplicado) {
-      alert("Nota já cadastrada");
-      return;
+      const duplicado = await existeNota(
+        numeroNF,
+        cnpjNF
+      );
+
+      if (duplicado) {
+        alert("Nota já cadastrada");
+        return;
+      }
     }
 
-    await addBoleto({
-      empresaId: empresaId,
-      empresa: empresaNome,
-      valor,
-      descricao,
-      vencimento: new Date(vencimento),
-      pago: false,
-      numeroNF,
-      cnpj: cnpjNF,
-    });
+    const valorTotal = Number(valor);
+    const valorParcela = valorTotal / parcelas;
 
-    alert("Boleto salvo");
+    for (let i = 1; i <= parcelas; i++) {
 
-    navigate("/dashboard");
+      const dataBase = new Date(vencimento);
+      const dataParcela = new Date(dataBase);
+
+      dataParcela.setMonth(
+        dataBase.getMonth() + (i - 1)
+      );
+
+      await addBoleto({
+        empresaId,
+        empresa: empresaNome,
+        valor: valorParcela,
+        descricao,
+        vencimento: dataParcela,
+        numeroNF,
+        cnpj: cnpjNF,
+        grupo,
+        parcela: i,
+        totalParcelas: parcelas,
+        pago: false,
+      });
+    }
+
+    alert("Boletos criados");
+
+    navigate("/");
   }
 
   // =========================
-  // IMPORTAR XML
+  // IMPORTAR XML MELHORADO
   // =========================
 
   async function importarXML(e) {
@@ -114,25 +149,58 @@ export default function NovoBoleto() {
     if (!file) return;
 
     const texto = await file.text();
-    const dados = lerXMLNFe(texto);
 
-    if (!dados) {
-      alert("Erro no XML");
-      return;
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(
+      texto,
+      "text/xml"
+    );
+
+    // dados principais
+
+    const numero =
+      xml.getElementsByTagName("nNF")[0]?.textContent || "";
+
+    const valor =
+      xml.getElementsByTagName("vNF")[0]?.textContent || "";
+
+    const cnpj =
+      xml.getElementsByTagName("CNPJ")[0]?.textContent || "";
+
+    const razao =
+      xml.getElementsByTagName("xNome")[0]?.textContent || "";
+
+    const rua =
+      xml.getElementsByTagName("xLgr")[0]?.textContent || "";
+
+    const numeroEndereco =
+      xml.getElementsByTagName("nro")[0]?.textContent || "";
+
+    const cidade =
+      xml.getElementsByTagName("xMun")[0]?.textContent || "";
+
+    const uf =
+      xml.getElementsByTagName("UF")[0]?.textContent || "";
+
+    const data =
+      xml.getElementsByTagName("dhEmi")[0]?.textContent || "";
+
+    const endereco = `${rua} ${numeroEndereco}`;
+
+    setValor(valor);
+    setDescricao("NF " + numero);
+    setNumeroNF(numero);
+    setCnpjNF(cnpj);
+
+    if (data) {
+      setVencimento(data.substring(0, 10));
     }
 
-    setValor(dados.valor);
-    setDescricao("NF " + dados.numero);
-    setNumeroNF(dados.numero);
-    setCnpjNF(dados.cnpj);
-
-    if (dados.data) {
-      setVencimento(dados.data.substring(0, 10));
-    }
+    // verificar duplicado
 
     const duplicado = await existeNota(
-      dados.numero,
-      dados.cnpj
+      numero,
+      cnpj
     );
 
     if (duplicado) {
@@ -140,23 +208,23 @@ export default function NovoBoleto() {
       return;
     }
 
-    let emp = await getEmpresaByCNPJ(dados.cnpj);
+    // verificar empresa
+
+    let emp = await getEmpresaByCNPJ(cnpj);
 
     if (!emp) {
 
       const novoId = await addEmpresa({
-        cnpj: dados.cnpj,
-        razao: dados.razao,
+        cnpj: cnpj,
+        razao: razao,
+        endereco: endereco,
+        cidade: cidade,
+        uf: uf,
       });
-
-      if (!novoId) {
-        alert("Erro ao criar empresa");
-        return;
-      }
 
       emp = {
         id: novoId,
-        razao: dados.razao,
+        razao: razao,
       };
 
       await carregarEmpresas();
@@ -167,60 +235,111 @@ export default function NovoBoleto() {
   }
 
   // =========================
-  // UI
+  // FILTRO EMPRESAS
   // =========================
 
+  const empresasFiltradas = empresas.filter((e) =>
+    e.razao
+      ?.toLowerCase()
+      .includes(buscaEmpresa.toLowerCase())
+  );
+
   return (
-    <div className="flex bg-gray-900 text-gray-100 min-h-screen">
+    <div className="flex">
 
       <Sidebar />
 
-      <div className="flex-1 bg-gray-950">
+      <div className="flex-1 bg-gray-900 text-white min-h-screen">
 
         <Header />
 
-        <div className="p-8">
+        <div className="p-6">
 
-          <h1 className="text-2xl font-semibold mb-6">
+          <h1 className="text-2xl font-bold mb-6">
             Novo Boleto
           </h1>
 
-          <div className="bg-gray-800 p-8 rounded-2xl shadow-lg">
+          <div className="bg-gray-800 p-6 rounded-xl shadow">
 
-            {/* XML */}
-            <input
-              type="file"
-              accept=".xml"
-              onChange={importarXML}
-              className="mb-6 bg-gray-800 border border-gray-600 p-2 rounded text-gray-200 w-full"
-            />
+            {/* IMPORTAR XML */}
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="mb-6">
 
-              <select
-                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
-                value={empresaId}
-                onChange={(e) =>
-                  selecionarEmpresa(e.target.value)
-                }
-              >
-                <option value="">
-                  Selecionar empresa
-                </option>
-
-                {empresas.map((e) => (
-                  <option
-                    key={e.id}
-                    value={e.id}
-                  >
-                    {e.razao}
-                  </option>
-                ))}
-              </select>
+              <label className="block mb-2 text-sm text-gray-300">
+                Importar XML da NF-e
+              </label>
 
               <input
-                placeholder="Valor"
-                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                type="file"
+                accept=".xml"
+                onChange={importarXML}
+                className="bg-gray-700 p-2 rounded"
+              />
+
+            </div>
+
+            {/* BUSCAR EMPRESA */}
+
+            <input
+              placeholder="Pesquisar empresa..."
+              className="bg-gray-700 p-2 rounded w-full mb-4"
+              value={buscaEmpresa}
+              onChange={(e) =>
+                setBuscaEmpresa(e.target.value)
+              }
+            />
+
+            <select
+              className="bg-gray-700 p-2 rounded w-full mb-4"
+              value={empresaId}
+              onChange={(e) =>
+                selecionarEmpresa(e.target.value)
+              }
+            >
+              <option value="">
+                Selecionar empresa
+              </option>
+
+              {empresasFiltradas.map((e) => (
+                <option
+                  key={e.id}
+                  value={e.id}
+                >
+                  {e.razao}
+                </option>
+              ))}
+
+            </select>
+
+            {/* NOVA EMPRESA */}
+
+            <div className="flex gap-2 mb-6">
+
+              <input
+                placeholder="Cadastrar nova empresa"
+                className="bg-gray-700 p-2 rounded w-full"
+                value={novaEmpresa}
+                onChange={(e) =>
+                  setNovaEmpresa(e.target.value)
+                }
+              />
+
+              <button
+                onClick={criarEmpresaManual}
+                className="bg-blue-600 px-4 rounded"
+              >
+                Criar
+              </button>
+
+            </div>
+
+            {/* FORM BOLETO */}
+
+            <div className="grid grid-cols-2 gap-4">
+
+              <input
+                placeholder="Valor total"
+                className="bg-gray-700 p-2 rounded"
                 value={valor}
                 onChange={(e) =>
                   setValor(e.target.value)
@@ -229,7 +348,7 @@ export default function NovoBoleto() {
 
               <input
                 type="date"
-                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                className="bg-gray-700 p-2 rounded"
                 value={vencimento}
                 onChange={(e) =>
                   setVencimento(e.target.value)
@@ -238,37 +357,59 @@ export default function NovoBoleto() {
 
               <input
                 placeholder="Descrição"
-                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                className="bg-gray-700 p-2 rounded"
                 value={descricao}
                 onChange={(e) =>
                   setDescricao(e.target.value)
                 }
               />
 
+              <input
+                placeholder="Número NF (opcional)"
+                className="bg-gray-700 p-2 rounded"
+                value={numeroNF}
+                onChange={(e) =>
+                  setNumeroNF(e.target.value)
+                }
+              />
+
+              <input
+                placeholder="Grupo de notas"
+                className="bg-gray-700 p-2 rounded"
+                value={grupo}
+                onChange={(e) =>
+                  setGrupo(e.target.value)
+                }
+              />
+
+              <input
+                type="number"
+                placeholder="Parcelas"
+                className="bg-gray-700 p-2 rounded"
+                value={parcelas}
+                onChange={(e) =>
+                  setParcelas(
+                    Number(e.target.value)
+                  )
+                }
+              />
+
             </div>
 
-            {/* BOTÕES */}
-            <div className="mt-8 flex gap-4">
+            <div className="mt-6 flex gap-4">
 
               <button
                 onClick={salvar}
-                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white transition"
+                className="bg-green-600 px-4 py-2 rounded"
               >
-                Salvar boleto
+                Criar boletos
               </button>
 
               <button
-                onClick={() => navigate("/dashboard")}
-                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white transition"
+                onClick={() => navigate("/")}
+                className="bg-gray-600 px-4 py-2 rounded"
               >
                 Voltar
-              </button>
-
-              <button
-                onClick={() => navigate("/login")}
-                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white transition"
-              >
-                Sair
               </button>
 
             </div>
