@@ -20,7 +20,11 @@ export async function getBoletos() {
 }
 
 export async function addBoleto(boleto) {
-  await addDoc(ref, boleto);
+  
+  const docRef = await addDoc(ref, boleto);
+
+  return docRef.id;
+
 }
 
 export async function deleteBoleto(id) {

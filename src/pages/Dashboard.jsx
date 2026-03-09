@@ -27,8 +27,17 @@ export default function Dashboard() {
 
   const [boletos, setBoletos] = useState([]);
 
-  const [mesFiltro, setMesFiltro] = useState("");
+  const [mesFiltro, setMesFiltro] = useState(
+    new Date().getMonth() + 1
+  );
+
   const [empresaFiltro, setEmpresaFiltro] = useState("");
+
+  const [modalEditar, setModalEditar] = useState(false);
+  const [boletoEditando, setBoletoEditando] = useState(null);
+
+  const [modalBoleto, setModalBoleto] = useState(false);
+  const [boletoVisualizando, setBoletoVisualizando] = useState(null);
 
   useEffect(() => {
     carregarBoletos();
@@ -39,27 +48,7 @@ export default function Dashboard() {
     setBoletos(dados || []);
   }
 
-  const hoje = new Date()
-
-const totalPago = boletos
-.filter(b=>b.pago)
-.reduce((acc,b)=>acc+Number(b.valor||0),0)
-
-const totalPendente = boletos
-.filter(b=>!b.pago)
-.reduce((acc,b)=>acc+Number(b.valor||0),0)
-
-const totalVencido = boletos
-.filter(b=>{
-const data = converterData(b.vencimento)
-return !b.pago && data && data < hoje
-})
-.reduce((acc,b)=>acc+Number(b.valor||0),0)
-
-  async function sair() {
-    await signOut(auth);
-    navigate("/login");
-  }
+  const hoje = new Date();
 
   function converterData(vencimento) {
 
@@ -70,11 +59,19 @@ return !b.pago && data && data < hoje
     }
 
     return new Date(vencimento);
+
   }
 
-  // =============================
+  
+
+  async function sair() {
+    await signOut(auth);
+    navigate("/login");
+  }
+
+  // ================================
   // FILTROS
-  // =============================
+  // ================================
 
   const boletosFiltrados = boletos.filter((b) => {
 
@@ -91,11 +88,27 @@ return !b.pago && data && data < hoje
       );
 
     return filtroMes && filtroEmpresa;
+
   });
 
-  // =============================
+  const totalPago = boletosFiltrados
+  .filter(b => b.pago)
+  .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+
+const totalPendente = boletosFiltrados
+  .filter(b => !b.pago)
+  .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+
+const totalVencido = boletosFiltrados
+  .filter(b => {
+    const data = converterData(b.vencimento);
+    return !b.pago && data && data < hoje;
+  })
+  .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+
+  // ================================
   // MARCAR PAGO
-  // =============================
+  // ================================
 
   async function marcarPago(boleto) {
 
@@ -104,11 +117,12 @@ return !b.pago && data && data < hoje
     });
 
     carregarBoletos();
+
   }
 
-  // =============================
+  // ================================
   // EXCLUIR
-  // =============================
+  // ================================
 
   async function excluir(boleto) {
 
@@ -121,45 +135,58 @@ return !b.pago && data && data < hoje
     await deleteBoleto(boleto.id);
 
     carregarBoletos();
+
   }
 
-  // =============================
-  // EDITAR
-  // =============================
+  // ================================
+  // EDITAR BOLETO
+  // ================================
 
-  function editar(boleto) {
+  function abrirEditar(boleto) {
 
-    const novoValor = prompt(
-      "Novo valor",
-      boleto.valor
-    );
-
-    if (!novoValor) return;
-
-    updateBoleto(boleto.id, {
-      valor: Number(novoValor),
+    setBoletoEditando({
+      ...boleto,
+      vencimento: converterData(boleto.vencimento)
+        ?.toISOString()
+        .substring(0, 10)
     });
 
-    carregarBoletos();
+    setModalEditar(true);
+
   }
 
-  // =============================
-  // DADOS GRAFICO
-  // =============================
+  async function salvarEdicao() {
+
+    await updateBoleto(
+      boletoEditando.id,
+      boletoEditando
+    );
+
+    setModalEditar(false);
+
+    carregarBoletos();
+
+  }
+
+  // ================================
+  // VISUALIZAR BOLETO
+  // ================================
+
+  function abrirBoleto(boleto) {
+
+    setBoletoVisualizando(boleto);
+
+    setModalBoleto(true);
+
+  }
+
+  // ================================
+  // GRAFICO
+  // ================================
 
   const nomesMeses = [
-    "Jan",
-    "Fev",
-    "Mar",
-    "Abr",
-    "Mai",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Set",
-    "Out",
-    "Nov",
-    "Dez",
+    "Jan","Fev","Mar","Abr","Mai","Jun",
+    "Jul","Ago","Set","Out","Nov","Dez"
   ];
 
   const dadosGrafico = [];
@@ -197,12 +224,12 @@ return !b.pago && data && data < hoje
 
         <div className="p-6">
 
-          {/* TÍTULO */}
+          {/* TOPO */}
 
           <div className="flex justify-between mb-6">
 
             <h1 className="text-2xl font-bold">
-              Dashboard Financeiro
+              Painel Financeiro
             </h1>
 
             <button
@@ -211,6 +238,33 @@ return !b.pago && data && data < hoje
             >
               Sair
             </button>
+
+          </div>
+
+          {/* RESUMO */}
+
+          <div className="grid grid-cols-3 gap-4 mb-6">
+
+            <div className="bg-gray-800 p-4 rounded">
+              Pago
+              <div className="text-green-400 text-xl">
+                R$ {totalPago.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="bg-gray-800 p-4 rounded">
+              Pendente
+              <div className="text-yellow-400 text-xl">
+                R$ {totalPendente.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="bg-gray-800 p-4 rounded">
+              Vencido
+              <div className="text-red-400 text-xl">
+                R$ {totalVencido.toFixed(2)}
+              </div>
+            </div>
 
           </div>
 
@@ -231,18 +285,9 @@ return !b.pago && data && data < hoje
               </option>
 
               {[
-                "Janeiro",
-                "Fevereiro",
-                "Março",
-                "Abril",
-                "Maio",
-                "Junho",
-                "Julho",
-                "Agosto",
-                "Setembro",
-                "Outubro",
-                "Novembro",
-                "Dezembro",
+                "Janeiro","Fevereiro","Março","Abril",
+                "Maio","Junho","Julho","Agosto",
+                "Setembro","Outubro","Novembro","Dezembro"
               ].map((nome, i) => (
 
                 <option key={i} value={i + 1}>
@@ -343,11 +388,20 @@ return !b.pago && data && data < hoje
 
                         <button
                           onClick={() =>
-                            editar(b)
+                            abrirEditar(b)
                           }
                           className="bg-blue-600 px-2 py-1 rounded"
                         >
                           ✏
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            abrirBoleto(b)
+                          }
+                          className="bg-purple-600 px-2 py-1 rounded"
+                        >
+                          📄
                         </button>
 
                         <button
@@ -391,7 +445,6 @@ return !b.pago && data && data < hoje
                 <XAxis dataKey="mes" />
                 <YAxis />
                 <Tooltip />
-
                 <Bar dataKey="total" />
 
               </BarChart>
@@ -404,7 +457,166 @@ return !b.pago && data && data < hoje
 
       </div>
 
+      {/* MODAL EDITAR */}
+
+      {modalEditar && (
+
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+
+            <h2 className="text-xl mb-4">
+              Editar boleto
+            </h2>
+
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3"
+              value={boletoEditando.empresa}
+              onChange={(e)=>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  empresa:e.target.value
+                })
+              }
+            />
+
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3"
+              value={boletoEditando.valor}
+              onChange={(e)=>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  valor:e.target.value
+                })
+              }
+            />
+
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-3"
+              value={boletoEditando.vencimento}
+              onChange={(e)=>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  vencimento:e.target.value
+                })
+              }
+            />
+
+            <input
+              placeholder="NF"
+              className="bg-gray-700 p-2 rounded w-full mb-3"
+              value={boletoEditando.numeroNF || ""}
+              onChange={(e)=>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  numeroNF:e.target.value
+                })
+              }
+            />
+
+            <input
+              placeholder="Linha digitável"
+              className="bg-gray-700 p-2 rounded w-full mb-3"
+              value={boletoEditando.linhaDigitavel || ""}
+              onChange={(e)=>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  linhaDigitavel:e.target.value
+                })
+              }
+            />
+
+            <div className="flex gap-3">
+
+              <button
+                onClick={salvarEdicao}
+                className="bg-green-600 px-4 py-2 rounded"
+              >
+                Salvar
+              </button>
+
+              <button
+                onClick={()=>setModalEditar(false)}
+                className="bg-gray-600 px-4 py-2 rounded"
+              >
+                Cancelar
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+      {/* MODAL BOLETO */}
+
+      {modalBoleto && (
+
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+
+            <h2 className="text-xl mb-4">
+              Boleto
+            </h2>
+
+            {boletoVisualizando?.linhaDigitavel && (
+
+              <div className="mb-4">
+
+                <div className="text-sm text-gray-400">
+                  Linha digitável
+                </div>
+
+                <div className="bg-gray-700 p-2 rounded break-all">
+                  {boletoVisualizando.linhaDigitavel}
+                </div>
+
+                <button
+                  onClick={()=>{
+                    navigator.clipboard.writeText(
+                      boletoVisualizando.linhaDigitavel
+                    )
+                  }}
+                  className="mt-2 bg-blue-600 px-3 py-1 rounded"
+                >
+                  Copiar
+                </button>
+
+              </div>
+
+            )}
+
+            {boletoVisualizando?.pdf && (
+
+              <a
+                href={boletoVisualizando.pdf}
+                target="_blank"
+                className="bg-green-600 px-4 py-2 rounded block text-center"
+              >
+                Abrir PDF
+              </a>
+
+            )}
+
+            <button
+              onClick={()=>setModalBoleto(false)}
+              className="mt-4 bg-gray-600 px-4 py-2 rounded w-full"
+            >
+              Fechar
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
     </div>
 
   );
+
 }

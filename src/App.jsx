@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import NovoBoleto from "./pages/NovoBoleto";
 import Empresas from "./pages/Empresas";
+import Notas from "./pages/Notas";
 import Login from "./pages/Login";
 import PrivateRoute from "./components/auth/PrivateRoute";
 
@@ -36,6 +37,8 @@ export default function App() {
           </PrivateRoute>
         }
       />
+
+      <Route path="/notas" element={<Notas />} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
