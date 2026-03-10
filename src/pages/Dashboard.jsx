@@ -67,9 +67,18 @@ export default function Dashboard() {
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
   const totalPendente = boletos
-    .filter(b => !b.pago)
-    .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+  .filter(b => {
 
+    if (b.pago) return false;
+
+    if (mesFiltro === "") return true;
+
+    const data = converterData(b.vencimento);
+
+    return data && data.getMonth() + 1 === Number(mesFiltro);
+
+  })
+  .reduce((acc, b) => acc + Number(b.valor || 0), 0);
   const totalVencido = boletos
     .filter(b => {
       const data = converterData(b.vencimento);
@@ -251,7 +260,7 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-gray-800 p-4 rounded">
-              Pendente
+              Pendente no Período 
               <div className="text-yellow-400 text-xl">
                 R$ {totalPendente.toFixed(2)}
               </div>

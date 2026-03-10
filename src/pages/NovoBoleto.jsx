@@ -110,9 +110,12 @@ export default function NovoBoleto() {
     const valorTotal = Number(valor);
     const valorParcela = valorTotal / parcelas;
 
+    // CORREÇÃO DA DATA
+    const [ano, mes, dia] = vencimento.split("-");
+    const dataBase = new Date(ano, mes - 1, dia);
+
     for (let i = 1; i <= parcelas; i++) {
 
-      const dataBase = new Date(vencimento);
       const dataParcela = new Date(dataBase);
 
       dataParcela.setMonth(
