@@ -3,6 +3,7 @@ import MainLayout from "../components/layout/MainLayout";
 import {
   getEmpresas,
   addEmpresa,
+  updateEmpresa,
 } from "../services/empresasService";
 
 export default function Empresas() {
@@ -13,6 +14,14 @@ export default function Empresas() {
   const [fantasia, setFantasia] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");
+  const [editRazao, setEditRazao] = useState("");
+  const [editFantasia, setEditFantasia] = useState("");
+  const [editCidade, setEditCidade] = useState("");
+  const [editUf, setEditUf] = useState("");
 
   useEffect(() => {
     carregar();
@@ -113,6 +122,50 @@ export default function Empresas() {
     carregar();
   }
 
+  // =========================
+  // EDIÇÃO
+  // =========================
+
+  function abrirEdicao(empresa) {
+    setEditId(empresa.id);
+    setEditCnpj(empresa.cnpj || "");
+    setEditRazao(empresa.razao || "");
+    setEditFantasia(empresa.fantasia || "");
+    setEditCidade(empresa.cidade || "");
+    setEditUf(empresa.uf || "");
+    setIsEditModalOpen(true);
+  }
+
+  function fecharEdicao() {
+    setIsEditModalOpen(false);
+    setEditId("");
+  }
+
+  function handleEditCNPJ(e) {
+    const valor = e.target.value;
+    setEditCnpj(formatarCNPJ(valor));
+  }
+
+  async function salvarEdicao() {
+    if (!editRazao) {
+      alert("Informe a empresa");
+      return;
+    }
+
+    const cnpjLimpo = limparCNPJ(editCnpj);
+
+    await updateEmpresa(editId, {
+      cnpj: cnpjLimpo,
+      razao: editRazao,
+      fantasia: editFantasia,
+      cidade: editCidade,
+      uf: editUf,
+    });
+
+    fecharEdicao();
+    carregar();
+  }
+
   return (
     <MainLayout>
 
@@ -189,6 +242,7 @@ export default function Empresas() {
               <th className="pb-2">Empresa</th>
               <th className="pb-2">Cidade</th>
               <th className="pb-2">UF</th>
+              <th className="pb-2">Ações</th>
             </tr>
           </thead>
 
@@ -199,6 +253,14 @@ export default function Empresas() {
                 <td>{e.razao}</td>
                 <td>{e.cidade}</td>
                 <td>{e.uf}</td>
+                <td>
+                  <button
+                    onClick={() => abrirEdicao(e)}
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-xs"
+                  >
+                    Editar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -206,6 +268,68 @@ export default function Empresas() {
         </table>
 
       </div>
+
+      {/* MODAL EDITAR */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-lg">
+            <h2 className="text-xl font-semibold mb-4">Editar Empresa</h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                placeholder="CNPJ"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editCnpj}
+                onChange={handleEditCNPJ}
+              />
+              <div /> {/* Espaçador */}
+
+              <input
+                placeholder="Razão Social"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
+                value={editRazao}
+                onChange={(e) => setEditRazao(e.target.value)}
+              />
+
+              <input
+                placeholder="Fantasia"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
+                value={editFantasia}
+                onChange={(e) => setEditFantasia(e.target.value)}
+              />
+
+              <input
+                placeholder="Cidade"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editCidade}
+                onChange={(e) => setEditCidade(e.target.value)}
+              />
+
+              <input
+                placeholder="UF"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editUf}
+                onChange={(e) => setEditUf(e.target.value)}
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={fecharEdicao}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </MainLayout>
   );

@@ -3,6 +3,8 @@ import {
   collection,
   addDoc,
   getDocs,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 
 const ref = collection(db, "empresas");
@@ -33,4 +35,9 @@ export async function getEmpresaByCNPJ(cnpj) {
   return lista.find(
     (e) => e.cnpj === cnpj
   );
+}
+
+export async function updateEmpresa(id, dados) {
+  const docRef = doc(db, "empresas", id);
+  await updateDoc(docRef, dados);
 }
