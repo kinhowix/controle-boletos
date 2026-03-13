@@ -12,14 +12,7 @@ import {
   updateBoleto
 } from "../services/boletosService";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { getBancos, addBanco } from "../services/bancosService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
 
@@ -41,9 +34,22 @@ export default function Dashboard() {
   const [modalBoleto, setModalBoleto] = useState(false);
   const [boletoVisualizando, setBoletoVisualizando] = useState(null);
 
+  const [bancos, setBancos] = useState([]);
+  const [modalBaixa, setModalBaixa] = useState(false);
+  const [boletoBaixa, setBoletoBaixa] = useState(null);
+  const [baixaData, setBaixaData] = useState(new Date().toISOString().substring(0, 10));
+  const [baixaBanco, setBaixaBanco] = useState("");
+  const [novoBanco, setNovoBanco] = useState("");
+
   useEffect(() => {
     carregarBoletos();
+    carregarBancos();
   }, []);
+
+  async function carregarBancos() {
+    const dados = await getBancos();
+    setBancos(dados || []);
+  }
 
   async function carregarBoletos() {
     const dados = await getBoletos();
@@ -116,17 +122,57 @@ export default function Dashboard() {
   });
 
   // ================================
-  // MARCAR PAGO
+  // MARCAR PAGO (BAIXA)
   // ================================
 
-  async function marcarPago(boleto) {
+  async function iniciarBaixa(boleto) {
+    if (boleto.pago) {
+      // Se já está pago e clica, apenas reverte o status
+      await updateBoleto(boleto.id, {
+        pago: false,
+        dataPagamento: null,
+        banco: null,
+      });
+      carregarBoletos();
+      return;
+    }
 
-    await updateBoleto(boleto.id, {
-      pago: !boleto.pago,
+    setBoletoBaixa(boleto);
+    setBaixaData(new Date().toISOString().substring(0, 10));
+    setBaixaBanco("");
+    setNovoBanco("");
+    setModalBaixa(true);
+  }
+
+  async function confirmarBaixa() {
+    let bancoSelecionado = baixaBanco;
+
+    if (bancoSelecionado === "novo") {
+      if (!novoBanco) {
+        alert("Informe o nome do novo banco.");
+        return;
+      }
+      bancoSelecionado = novoBanco;
+      await addBanco({ nome: novoBanco });
+      carregarBancos();
+    } else if (!bancoSelecionado) {
+      alert("Selecione um banco.");
+      return;
+    }
+
+    await updateBoleto(boletoBaixa.id, {
+      pago: true,
+      dataPagamento: baixaData,
+      banco: bancoSelecionado,
     });
 
+    setModalBaixa(false);
     carregarBoletos();
+  }
 
+  function cancelarBaixa() {
+    setModalBaixa(false);
+    setBoletoBaixa(null);
   }
 
   // ================================
@@ -196,36 +242,11 @@ export default function Dashboard() {
   }
 
   // ================================
-  // GRAFICO
+  // LISTAS SEPARADAS
   // ================================
 
-  const nomesMeses = [
-    "Jan","Fev","Mar","Abr","Mai","Jun",
-    "Jul","Ago","Set","Out","Nov","Dez"
-  ];
-
-  const dadosGrafico = [];
-
-  for (let i = 1; i <= 12; i++) {
-
-    const total = boletos.reduce((acc, b) => {
-
-      const data = converterData(b.vencimento);
-
-      if (data && data.getMonth() + 1 === i) {
-        return acc + Number(b.valor || 0);
-      }
-
-      return acc;
-
-    }, 0);
-
-    dadosGrafico.push({
-      mes: nomesMeses[i - 1],
-      total,
-    });
-
-  }
+  const pendentesEVencidos = boletosFiltrados.filter(b => !b.pago);
+  const pagos = boletosFiltrados.filter(b => b.pago);
 
   return (
 
@@ -324,148 +345,111 @@ export default function Dashboard() {
 
           </div>
 
-          {/* TABELA */}
+          {/* TABELA PENDENTES */}
 
-          <div className="bg-gray-800 p-6 rounded-xl">
-
+          <div className="bg-gray-800 p-6 rounded-xl mb-6">
+            <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
             <table className="w-full">
-
               <thead>
-
                 <tr className="text-left border-b border-gray-600">
-
-                  <th>Empresa</th>
-                  <th>Valor</th>
-                  <th>Vencimento</th>
-                  <th>NF</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-
+                  <th className="pb-2">Empresa</th>
+                  <th className="pb-2">Valor</th>
+                  <th className="pb-2">Vencimento</th>
+                  <th className="pb-2">NF</th>
+                  <th className="pb-2">Status</th>
+                  <th className="pb-2">Ações</th>
                 </tr>
-
               </thead>
-
               <tbody>
-
-                {boletosFiltrados.map((b) => {
-
-                  const data = converterData(
-                    b.vencimento
-                  );
+                {pendentesEVencidos.map((b) => {
+                  const data = converterData(b.vencimento);
+                  const isVencido = data && data < hoje;
 
                   return (
-
-                    <tr
-                      key={b.id}
-                      className="border-b border-gray-700"
-                    >
-
-                      <td>{b.empresa}</td>
-
+                    <tr key={b.id} className="border-b border-gray-700">
+                      <td className="py-2">{b.empresa}</td>
+                      <td>R$ {formatarReal(b.valor)}</td>
+                      <td>{data ? data.toLocaleDateString() : ""}</td>
+                      <td>{b.numeroNF || "-"}</td>
                       <td>
-                        R$ {formatarReal(b.valor)}
-                      </td>
-
-                      <td>
-                        {data
-                          ? data.toLocaleDateString()
-                          : ""}
-                      </td>
-
-                      <td>
-                        {b.numeroNF || "-"}
-                      </td>
-
-                      <td>
-
-                        {b.pago ? (
-                          <span className="text-green-400">
-                            Pago
-                          </span>
+                        {isVencido ? (
+                          <span className="text-red-400 font-bold">Vencido</span>
                         ) : (
-                          <span className="text-yellow-400">
-                            Pendente
-                          </span>
+                          <span className="text-yellow-400">Pendente</span>
                         )}
-
                       </td>
-
-                      <td className="flex gap-2">
-
+                      <td className="flex gap-2 py-2">
                         <button
-                          onClick={() =>
-                            marcarPago(b)
-                          }
-                          className="bg-green-600 px-2 py-1 rounded"
+                          onClick={() => iniciarBaixa(b)}
+                          className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white"
+                          title="Dar baixa"
                         >
-                          ✔
+                          ✔ Baixa
                         </button>
-
-                        <button
-                          onClick={() =>
-                            abrirEditar(b)
-                          }
-                          className="bg-blue-600 px-2 py-1 rounded"
-                        >
-                          ✏
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            abrirBoleto(b)
-                          }
-                          className="bg-purple-600 px-2 py-1 rounded"
-                        >
-                          📄
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            excluir(b)
-                          }
-                          className="bg-red-600 px-2 py-1 rounded"
-                        >
-                          🗑
-                        </button>
-
+                        <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white" title="Editar">✏</button>
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-white" title="Visualizar">📄</button>
+                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white" title="Excluir">🗑</button>
                       </td>
-
                     </tr>
-
                   );
-
                 })}
-
+                {pendentesEVencidos.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="text-center py-4 text-gray-400">Nenhum boleto pendente neste período.</td>
+                  </tr>
+                )}
               </tbody>
-
             </table>
-
           </div>
 
-          {/* GRAFICO */}
+          {/* TABELA PAGOS */}
 
-          <div className="bg-gray-800 p-6 rounded-xl mt-6">
-
-            <h2 className="text-xl font-bold mb-4">
-              Total por mês
-            </h2>
-
-            <ResponsiveContainer
-              width="100%"
-              height={300}
-            >
-
-              <BarChart data={dadosGrafico}>
-
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" />
-
-              </BarChart>
-
-            </ResponsiveContainer>
-
+          <div className="bg-gray-800 p-6 rounded-xl">
+            <h2 className="text-xl font-bold mb-4 text-green-400">Histórico de Pagamentos</h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-gray-600">
+                  <th className="pb-2">Empresa</th>
+                  <th className="pb-2">Valor</th>
+                  <th className="pb-2">NF</th>
+                  <th className="pb-2">Vencimento</th>
+                  <th className="pb-2">Data Pago</th>
+                  <th className="pb-2">Banco</th>
+                  <th className="pb-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagos.map((b) => {
+                  const dataVenc = converterData(b.vencimento);
+                  return (
+                    <tr key={b.id} className="border-b border-gray-700">
+                      <td className="py-2">{b.empresa}</td>
+                      <td>R$ {formatarReal(b.valor)}</td>
+                      <td>{b.numeroNF || "-"}</td>
+                      <td>{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
+                      <td>{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
+                      <td>{b.banco || "-"}</td>
+                      <td className="flex gap-2 py-2">
+                        <button
+                          onClick={() => iniciarBaixa(b)}
+                          className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-white"
+                          title="Desmarcar pago"
+                        >
+                          Desfazer
+                        </button>
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-white" title="Visualizar">📄</button>
+                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white" title="Excluir">🗑</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pagos.length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="text-center py-4 text-gray-400">Nenhum boleto pago neste período.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
         </div>
@@ -608,13 +592,33 @@ export default function Dashboard() {
 
             {boletoVisualizando?.pdf && (
 
-              <a
-                href={boletoVisualizando.pdf}
-                target="_blank"
-                className="bg-green-600 px-4 py-2 rounded block text-center"
+              <button
+                onClick={() => {
+                  const pdf = boletoVisualizando.pdf;
+                  if (pdf.startsWith("data:application/pdf")) {
+                    try {
+                      const byteString = atob(pdf.split(",")[1]);
+                      const ab = new ArrayBuffer(byteString.length);
+                      const ia = new Uint8Array(ab);
+                      for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                      }
+                      const blob = new Blob([ab], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, "_blank");
+                    } catch (e) {
+                      alert("Erro ao abrir o PDF salvo.");
+                    }
+                  } else if (pdf.startsWith("http")) {
+                    window.open(pdf, "_blank");
+                  } else {
+                    alert("Este boleto possui apenas o nome do arquivo gravado antigamente e não pode ser aberto de forma automática.");
+                  }
+                }}
+                className="bg-green-600 px-4 py-2 rounded block w-full text-center font-bold text-white mb-2"
               >
                 Abrir PDF
-              </a>
+              </button>
 
             )}
 
@@ -629,6 +633,61 @@ export default function Dashboard() {
 
         </div>
 
+      )}
+
+      {/* MODAL BAIXA (PAGAMENTO) */}
+
+      {modalBaixa && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+            <h2 className="text-xl mb-4 font-bold text-green-400">Dar Baixa no Boleto</h2>
+            
+            <label className="block text-gray-400 text-sm mb-1">Data de Pagamento</label>
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-4"
+              value={baixaData}
+              onChange={(e) => setBaixaData(e.target.value)}
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Conta Bancária</label>
+            <select
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={baixaBanco}
+              onChange={(e) => setBaixaBanco(e.target.value)}
+            >
+              <option value="">Selecione um banco</option>
+              {bancos.map((b) => (
+                <option key={b.id} value={b.nome}>{b.nome}</option>
+              ))}
+              <option value="novo">+ Adicionar novo banco...</option>
+            </select>
+
+            {baixaBanco === "novo" && (
+              <input
+                placeholder="Nome do novo banco"
+                className="bg-gray-700 p-2 rounded w-full mb-4 border border-blue-500"
+                value={novoBanco}
+                onChange={(e) => setNovoBanco(e.target.value)}
+              />
+            )}
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={cancelarBaixa}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarBaixa}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

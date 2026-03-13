@@ -36,6 +36,9 @@ export default function NovoBoleto() {
 
   const [grupo, setGrupo] = useState("");
   const [parcelas, setParcelas] = useState(1);
+  const [linhaDigitavel, setLinhaDigitavel] = useState("");
+  const [pdfBoleto, setPdfBoleto] = useState(null);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     carregarEmpresas();
@@ -95,6 +98,12 @@ export default function NovoBoleto() {
       return;
     }
 
+    if (!vencimento) {
+      alert("Informe o vencimento");
+      setSalvando(false);
+      return;
+    }
+
     if (numeroNF) {
 
       const duplicado = await existeNota(
@@ -115,38 +124,71 @@ export default function NovoBoleto() {
       return;
     }
 
-    const valorParcela = valorTotal / parcelas;
+    setSalvando(true);
 
-    // CORREÇÃO DA DATA
-    const [ano, mes, dia] = vencimento.split("-");
-    const dataBase = new Date(ano, mes - 1, dia);
+    try {
+      const valorParcela = valorTotal / parcelas;
 
-    for (let i = 1; i <= parcelas; i++) {
+      let pdfUrl = "";
 
-      const dataParcela = new Date(dataBase);
+      // Conversão do PDF para texto (Base64) //
+      if (pdfBoleto) {
+        if (pdfBoleto.size > 800 * 1024) {
+          alert("O arquivo PDF é muito grande. O limite máximo seguro é 800 KB.");
+          setSalvando(false);
+          return;
+        }
+        try {
+          pdfUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(pdfBoleto);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (e) => reject(e);
+          });
+        } catch (error) {
+          console.error("Erro na leitura do PDF", error);
+          alert("Não foi possível ler o PDF, ele será ignorado.");
+        }
+      }
 
-      dataParcela.setMonth(
-        dataBase.getMonth() + (i - 1)
-      );
+      // CORREÇÃO DA DATA
+      const [ano, mes, dia] = vencimento.split("-");
+      const dataBase = new Date(ano, mes - 1, dia);
 
-      await addBoleto({
-        empresaId,
-        empresa: empresaNome,
-        valor: valorParcela,
-        descricao,
-        vencimento: dataParcela,
-        numeroNF,
-        cnpj: cnpjNF,
-        grupo,
-        parcela: i,
-        totalParcelas: parcelas,
-        pago: false,
-      });
+      for (let i = 1; i <= parcelas; i++) {
+
+        const dataParcela = new Date(dataBase);
+
+        dataParcela.setMonth(
+          dataBase.getMonth() + (i - 1)
+        );
+
+        await addBoleto({
+          empresaId,
+          empresa: empresaNome,
+          valor: valorParcela,
+          descricao,
+          vencimento: dataParcela,
+          numeroNF,
+          cnpj: cnpjNF,
+          grupo,
+          linhaDigitavel: linhaDigitavel || "",
+          pdf: pdfUrl,
+          parcela: i,
+          totalParcelas: parcelas,
+          pago: false,
+        });
+      }
+
+      alert("Boletos criados");
+      navigate("/");
+
+    } catch (erro) {
+      console.error("Erro geral ao salvar:", erro);
+      alert("Ocorreu um erro ao salvar o boleto. A página pode ter informações pendentes.");
+    } finally {
+      setSalvando(false);
     }
-
-    alert("Boletos criados");
-
-    navigate("/");
   }
 
   // =========================
@@ -404,15 +446,41 @@ export default function NovoBoleto() {
                 }
               />
 
+              <input
+                placeholder="Linha digitável (opcional)"
+                className="bg-gray-700 p-2 rounded col-span-2"
+                value={linhaDigitavel}
+                onChange={(e) =>
+                  setLinhaDigitavel(e.target.value)
+                }
+              />
+
+              <div className="col-span-2">
+                <label className="block mb-2 text-sm text-gray-400">
+                  Anexar PDF do Boleto (Opcional)
+                </label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="bg-gray-700 p-2 rounded w-full text-sm text-gray-300"
+                  onChange={(e) =>
+                    setPdfBoleto(e.target.files[0])
+                  }
+                />
+              </div>
+
             </div>
 
             <div className="mt-6 flex gap-4">
 
               <button
                 onClick={salvar}
-                className="bg-green-600 px-4 py-2 rounded"
+                disabled={salvando}
+                className={`px-4 py-2 rounded text-white font-semibold transition ${
+                  salvando ? "bg-gray-500 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+                }`}
               >
-                Criar boletos
+                {salvando ? "Salvando..." : "Criar boletos"}
               </button>
 
               <button

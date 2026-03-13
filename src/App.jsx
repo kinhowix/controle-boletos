@@ -3,6 +3,7 @@ import Dashboard from "./pages/Dashboard";
 import NovoBoleto from "./pages/NovoBoleto";
 import Empresas from "./pages/Empresas";
 import Notas from "./pages/Notas";
+import Grafico from "./pages/Grafico";
 import Login from "./pages/Login";
 import PrivateRoute from "./components/auth/PrivateRoute";
 
@@ -39,6 +40,15 @@ export default function App() {
       />
 
       <Route path="/notas" element={<Notas />} />
+
+      <Route
+        path="/grafico"
+        element={
+          <PrivateRoute>
+            <Grafico />
+          </PrivateRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

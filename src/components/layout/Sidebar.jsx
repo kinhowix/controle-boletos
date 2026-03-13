@@ -34,6 +34,11 @@ export default function Sidebar() {
           🏢 Empresas
         </Link>
 
+        <Link to="/grafico" className={linkClass("/grafico")}>
+          📊 Gráfico
+        </Link>
+
+
       </nav>
     </div>
   );

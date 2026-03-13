@@ -9,12 +9,12 @@ import {
   existeNota
 } from "../services/notasService";
 
-import { addBoleto } from "../services/boletosService";
-
 import {
   getEmpresaByCNPJ,
   addEmpresa
 } from "../services/empresasService";
+
+import { addBoleto } from "../services/boletosService";
 
 import { formatarReal } from "../utils/formatCurrency";
 
@@ -181,6 +181,26 @@ export default function Notas() {
       const valorParcela = total / parcelas;
 
       let primeiroBoletoId = null;
+      let pdfUrl = "";
+
+      // Conversão do PDF para um texto seguro (Base64) //
+      if (pdfBoleto) {
+        if (pdfBoleto.size > 800 * 1024) {
+          alert("O arquivo PDF é muito grande. O limite máximo seguro é 800 KB.");
+          return;
+        }
+        try {
+          pdfUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(pdfBoleto);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (e) => reject(e);
+          });
+        } catch (error) {
+          console.error("Erro na leitura do PDF", error);
+          alert("Não foi possível ler o PDF, ele será ignorado.");
+        }
+      }
 
       for (let i = 1; i <= parcelas; i++) {
 
@@ -198,7 +218,7 @@ export default function Notas() {
           descricao,
           vencimento: dataParcela,
           linhaDigitavel: linhaDigitavel || "",
-          pdf: pdfBoleto ? pdfBoleto.name : "",
+          pdf: pdfUrl,
           parcela: i,
           totalParcelas: parcelas,
           pago: false
