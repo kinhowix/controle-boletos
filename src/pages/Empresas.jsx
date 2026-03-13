@@ -3,6 +3,8 @@ import MainLayout from "../components/layout/MainLayout";
 import {
   getEmpresas,
   addEmpresa,
+  updateEmpresa,
+  deleteEmpresa,
 } from "../services/empresasService";
 
 export default function Empresas() {
@@ -14,6 +16,14 @@ export default function Empresas() {
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editId, setEditId] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");
+  const [editRazao, setEditRazao] = useState("");
+  const [editFantasia, setEditFantasia] = useState("");
+  const [editCidade, setEditCidade] = useState("");
+  const [editUf, setEditUf] = useState("");
+
   useEffect(() => {
     carregar();
   }, []);
@@ -23,15 +33,52 @@ export default function Empresas() {
     setEmpresas(dados);
   }
 
+  // =========================
+  // MÁSCARA CNPJ
+  // =========================
+
+  function formatarCNPJ(valor) {
+
+    let numeros = valor.replace(/\D/g, "");
+
+    if (numeros.length > 14) {
+      numeros = numeros.slice(0, 14);
+    }
+
+    numeros = numeros.replace(/^(\d{2})(\d)/, "$1.$2");
+    numeros = numeros.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    numeros = numeros.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    numeros = numeros.replace(/(\d{4})(\d)/, "$1-$2");
+
+    return numeros;
+  }
+
+  function handleCNPJ(e) {
+    const valor = e.target.value;
+    setCnpj(formatarCNPJ(valor));
+  }
+
+  function limparCNPJ(valor) {
+    return valor.replace(/\D/g, "");
+  }
+
+  // =========================
+  // BUSCAR CNPJ
+  // =========================
+
   async function buscarCNPJ() {
-    if (cnpj.length < 14) {
+
+    const cnpjLimpo = limparCNPJ(cnpj);
+
+    if (cnpjLimpo.length < 14) {
       alert("CNPJ inválido");
       return;
     }
 
     try {
+
       const res = await fetch(
-        `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`
+        `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`
       );
 
       const data = await res.json();
@@ -46,14 +93,21 @@ export default function Empresas() {
     }
   }
 
+  // =========================
+  // SALVAR
+  // =========================
+
   async function salvar() {
+
     if (!razao) {
       alert("Informe a empresa");
       return;
     }
 
+    const cnpjLimpo = limparCNPJ(cnpj);
+
     await addEmpresa({
-      cnpj,
+      cnpj: cnpjLimpo,
       razao,
       fantasia,
       cidade,
@@ -67,6 +121,57 @@ export default function Empresas() {
     setUf("");
 
     carregar();
+  }
+
+  // =========================
+  // EDIÇÃO
+  // =========================
+
+  function abrirEdicao(empresa) {
+    setEditId(empresa.id);
+    setEditCnpj(empresa.cnpj || "");
+    setEditRazao(empresa.razao || "");
+    setEditFantasia(empresa.fantasia || "");
+    setEditCidade(empresa.cidade || "");
+    setEditUf(empresa.uf || "");
+    setIsEditModalOpen(true);
+  }
+
+  function fecharEdicao() {
+    setIsEditModalOpen(false);
+    setEditId("");
+  }
+
+  function handleEditCNPJ(e) {
+    const valor = e.target.value;
+    setEditCnpj(formatarCNPJ(valor));
+  }
+
+  async function salvarEdicao() {
+    if (!editRazao) {
+      alert("Informe a empresa");
+      return;
+    }
+
+    const cnpjLimpo = limparCNPJ(editCnpj);
+
+    await updateEmpresa(editId, {
+      cnpj: cnpjLimpo,
+      razao: editRazao,
+      fantasia: editFantasia,
+      cidade: editCidade,
+      uf: editUf,
+    });
+
+    fecharEdicao();
+    carregar();
+  }
+
+  async function handleExcluir(id) {
+    if (window.confirm("Tem certeza que quer cancelar?")) {
+      await deleteEmpresa(id);
+      carregar();
+    }
   }
 
   return (
@@ -85,7 +190,7 @@ export default function Empresas() {
             placeholder="CNPJ"
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={cnpj}
-            onChange={(e) => setCnpj(e.target.value)}
+            onChange={handleCNPJ}
           />
 
           <button
@@ -145,6 +250,7 @@ export default function Empresas() {
               <th className="pb-2">Empresa</th>
               <th className="pb-2">Cidade</th>
               <th className="pb-2">UF</th>
+              <th className="pb-2">Ações</th>
             </tr>
           </thead>
 
@@ -155,6 +261,22 @@ export default function Empresas() {
                 <td>{e.razao}</td>
                 <td>{e.cidade}</td>
                 <td>{e.uf}</td>
+                <td>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => abrirEdicao(e)}
+                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-xs"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(e.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-xs"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -162,6 +284,68 @@ export default function Empresas() {
         </table>
 
       </div>
+
+      {/* MODAL EDITAR */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-lg">
+            <h2 className="text-xl font-semibold mb-4">Editar Empresa</h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                placeholder="CNPJ"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editCnpj}
+                onChange={handleEditCNPJ}
+              />
+              <div /> {/* Espaçador */}
+
+              <input
+                placeholder="Razão Social"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
+                value={editRazao}
+                onChange={(e) => setEditRazao(e.target.value)}
+              />
+
+              <input
+                placeholder="Fantasia"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
+                value={editFantasia}
+                onChange={(e) => setEditFantasia(e.target.value)}
+              />
+
+              <input
+                placeholder="Cidade"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editCidade}
+                onChange={(e) => setEditCidade(e.target.value)}
+              />
+
+              <input
+                placeholder="UF"
+                className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+                value={editUf}
+                onChange={(e) => setEditUf(e.target.value)}
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={fecharEdicao}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </MainLayout>
   );

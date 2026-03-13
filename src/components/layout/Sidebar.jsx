@@ -19,16 +19,29 @@ export default function Sidebar() {
       <nav className="space-y-3">
 
         <Link to="/" className={linkClass("/")}>
-          📊 Dashboard
+          📊 Painel de Controle
         </Link>
 
         <Link to="/novo-boleto" className={linkClass("/novo-boleto")}>
           ➕ Novo Boleto
         </Link>
 
+        <Link to="/notas" className={linkClass("/notas")}>
+          📄 Notas
+        </Link>
+
         <Link to="/empresas" className={linkClass("/empresas")}>
           🏢 Empresas
         </Link>
+
+        <Link to="/grafico" className={linkClass("/grafico")}>
+          📊 Gráfico
+        </Link>
+
+        <Link to="/cadastro" className={linkClass("/cadastro")}>
+          👤 Cadastro
+        </Link>
+
 
       </nav>
     </div>
