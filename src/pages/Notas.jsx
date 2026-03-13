@@ -16,6 +16,8 @@ import {
   addEmpresa
 } from "../services/empresasService";
 
+import { formatarReal } from "../utils/formatCurrency";
+
 export default function Notas() {
 
   const [notas, setNotas] = useState([]);
@@ -303,7 +305,7 @@ export default function Notas() {
                 <td>{n.empresa}</td>
 
                 <td>
-                  R$ {Number(n.valor).toFixed(2)}
+                  R$ {formatarReal(n.valor)}
                 </td>
 
                 <td>

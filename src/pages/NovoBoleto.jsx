@@ -13,6 +13,7 @@ import {
 } from "../services/empresasService";
 
 import { lerXMLNFe } from "../utils/xmlNFeReader";
+import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
 
 export default function NovoBoleto() {
 
@@ -107,7 +108,13 @@ export default function NovoBoleto() {
       }
     }
 
-    const valorTotal = Number(valor);
+    const valorTotal = parseReal(valor);
+
+    if (valorTotal <= 0) {
+      alert("Informe um valor válido");
+      return;
+    }
+
     const valorParcela = valorTotal / parcelas;
 
     // CORREÇÃO DA DATA
@@ -190,7 +197,7 @@ export default function NovoBoleto() {
 
     const endereco = `${rua} ${numeroEndereco}`;
 
-    setValor(valor);
+    setValor(aplicarMascaraReal(valor));
     setDescricao("NF " + numero);
     setNumeroNF(numero);
     setCnpjNF(cnpj);
@@ -341,11 +348,11 @@ export default function NovoBoleto() {
             <div className="grid grid-cols-2 gap-4">
 
               <input
-                placeholder="Valor total"
+                placeholder="Valor total (R$)"
                 className="bg-gray-700 p-2 rounded"
                 value={valor}
                 onChange={(e) =>
-                  setValor(e.target.value)
+                  setValor(aplicarMascaraReal(e.target.value))
                 }
               />
 

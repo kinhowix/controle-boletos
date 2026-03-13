@@ -4,6 +4,7 @@ import {
   getEmpresas,
   addEmpresa,
   updateEmpresa,
+  deleteEmpresa,
 } from "../services/empresasService";
 
 export default function Empresas() {
@@ -166,6 +167,13 @@ export default function Empresas() {
     carregar();
   }
 
+  async function handleExcluir(id) {
+    if (window.confirm("Tem certeza que quer cancelar?")) {
+      await deleteEmpresa(id);
+      carregar();
+    }
+  }
+
   return (
     <MainLayout>
 
@@ -254,12 +262,20 @@ export default function Empresas() {
                 <td>{e.cidade}</td>
                 <td>{e.uf}</td>
                 <td>
-                  <button
-                    onClick={() => abrirEdicao(e)}
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-xs"
-                  >
-                    Editar
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => abrirEdicao(e)}
+                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-xs"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(e.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-xs"
+                    >
+                      Excluir
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

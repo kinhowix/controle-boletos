@@ -21,6 +21,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
+
 export default function Dashboard() {
 
   const navigate = useNavigate();
@@ -153,6 +155,7 @@ export default function Dashboard() {
 
     setBoletoEditando({
       ...boleto,
+      valor: formatarReal(boleto.valor),
       vencimento: converterData(boleto.vencimento)
         ?.toISOString()
         .substring(0, 10)
@@ -164,9 +167,14 @@ export default function Dashboard() {
 
   async function salvarEdicao() {
 
+    const dadosAtualizados = {
+      ...boletoEditando,
+      valor: parseReal(boletoEditando.valor)
+    };
+
     await updateBoleto(
       boletoEditando.id,
-      boletoEditando
+      dadosAtualizados
     );
 
     setModalEditar(false);
@@ -255,21 +263,21 @@ export default function Dashboard() {
             <div className="bg-gray-800 p-4 rounded">
               Pago
               <div className="text-green-400 text-xl">
-                R$ {totalPago.toFixed(2)}
+                R$ {formatarReal(totalPago)}
               </div>
             </div>
 
             <div className="bg-gray-800 p-4 rounded">
               Pendente no Período 
               <div className="text-yellow-400 text-xl">
-                R$ {totalPendente.toFixed(2)}
+                R$ {formatarReal(totalPendente)}
               </div>
             </div>
 
             <div className="bg-gray-800 p-4 rounded">
               Vencido
               <div className="text-red-400 text-xl">
-                R$ {totalVencido.toFixed(2)}
+                R$ {formatarReal(totalVencido)}
               </div>
             </div>
 
@@ -355,7 +363,7 @@ export default function Dashboard() {
                       <td>{b.empresa}</td>
 
                       <td>
-                        R$ {Number(b.valor).toFixed(2)}
+                        R$ {formatarReal(b.valor)}
                       </td>
 
                       <td>
@@ -488,12 +496,13 @@ export default function Dashboard() {
             />
 
             <input
+              placeholder="Valor (R$)"
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.valor}
               onChange={(e)=>
                 setBoletoEditando({
                   ...boletoEditando,
-                  valor:e.target.value
+                  valor: aplicarMascaraReal(e.target.value)
                 })
               }
             />
