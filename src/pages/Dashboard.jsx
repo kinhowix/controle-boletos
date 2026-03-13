@@ -75,18 +75,18 @@ export default function Dashboard() {
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
   const totalPendente = boletos
-  .filter(b => {
+    .filter(b => {
 
-    if (b.pago) return false;
+      if (b.pago) return false;
 
-    if (mesFiltro === "") return true;
+      if (mesFiltro === "") return true;
 
-    const data = converterData(b.vencimento);
+      const data = converterData(b.vencimento);
 
-    return data && data.getMonth() + 1 === Number(mesFiltro);
+      return data && data.getMonth() + 1 === Number(mesFiltro);
 
-  })
-  .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+    })
+    .reduce((acc, b) => acc + Number(b.valor || 0), 0);
   const totalVencido = boletos
     .filter(b => {
       const data = converterData(b.vencimento);
@@ -289,7 +289,7 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-gray-800 p-4 rounded">
-              Pendente no Período 
+              Pendente no Período
               <div className="text-yellow-400 text-xl">
                 R$ {formatarReal(totalPendente)}
               </div>
@@ -321,9 +321,9 @@ export default function Dashboard() {
               </option>
 
               {[
-                "Janeiro","Fevereiro","Março","Abril",
-                "Maio","Junho","Julho","Agosto",
-                "Setembro","Outubro","Novembro","Dezembro"
+                "Janeiro", "Fevereiro", "Março", "Abril",
+                "Maio", "Junho", "Julho", "Agosto",
+                "Setembro", "Outubro", "Novembro", "Dezembro"
               ].map((nome, i) => (
 
                 <option key={i} value={i + 1}>
@@ -349,15 +349,15 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl mb-6">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <table className="w-full">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-gray-600">
-                  <th className="pb-2">Empresa</th>
-                  <th className="pb-2">Valor</th>
-                  <th className="pb-2">Vencimento</th>
-                  <th className="pb-2">NF</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Ações</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -367,28 +367,28 @@ export default function Dashboard() {
 
                   return (
                     <tr key={b.id} className="border-b border-gray-700">
-                      <td className="py-2">{b.empresa}</td>
-                      <td>R$ {formatarReal(b.valor)}</td>
-                      <td>{data ? data.toLocaleDateString() : ""}</td>
-                      <td>{b.numeroNF || "-"}</td>
-                      <td>
+                      <td className="py-3">{b.empresa}</td>
+                      <td className="py-3">R$ {formatarReal(b.valor)}</td>
+                      <td className="py-3">{data ? data.toLocaleDateString() : ""}</td>
+                      <td className="py-3">{b.numeroNF || "-"}</td>
+                      <td className="py-3">
                         {isVencido ? (
                           <span className="text-red-400 font-bold">Vencido</span>
                         ) : (
                           <span className="text-yellow-400">Pendente</span>
                         )}
                       </td>
-                      <td className="flex gap-2 py-2">
+                      <td className="flex gap-2 py-3 whitespace-nowrap">
                         <button
                           onClick={() => iniciarBaixa(b)}
-                          className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white"
+                          className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
                           title="Dar baixa"
                         >
                           ✔ Baixa
                         </button>
-                        <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white" title="Editar">✏</button>
-                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-white" title="Visualizar">📄</button>
-                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white" title="Excluir">🗑</button>
+                        <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
+                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
                       </td>
                     </tr>
                   );
@@ -409,13 +409,13 @@ export default function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-gray-600">
-                  <th className="pb-2">Empresa</th>
-                  <th className="pb-2">Valor</th>
-                  <th className="pb-2">NF</th>
-                  <th className="pb-2">Vencimento</th>
-                  <th className="pb-2">Data Pago</th>
-                  <th className="pb-2">Banco</th>
-                  <th className="pb-2">Ações</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Data Pago</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Banco</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -423,22 +423,22 @@ export default function Dashboard() {
                   const dataVenc = converterData(b.vencimento);
                   return (
                     <tr key={b.id} className="border-b border-gray-700">
-                      <td className="py-2">{b.empresa}</td>
-                      <td>R$ {formatarReal(b.valor)}</td>
-                      <td>{b.numeroNF || "-"}</td>
-                      <td>{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
-                      <td>{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
-                      <td>{b.banco || "-"}</td>
-                      <td className="flex gap-2 py-2">
+                      <td className="py-3">{b.empresa}</td>
+                      <td className="py-3">R$ {formatarReal(b.valor)}</td>
+                      <td className="py-3">{b.numeroNF || "-"}</td>
+                      <td className="py-3">{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
+                      <td className="py-3">{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
+                      <td className="py-3">{b.banco || "-"}</td>
+                      <td className="flex gap-2 py-3 whitespace-nowrap">
                         <button
                           onClick={() => iniciarBaixa(b)}
-                          className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-white"
+                          className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1.5 rounded text-xs font-medium text-white"
                           title="Desmarcar pago"
                         >
                           Desfazer
                         </button>
-                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-white" title="Visualizar">📄</button>
-                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white" title="Excluir">🗑</button>
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
+                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
                       </td>
                     </tr>
                   );
@@ -471,10 +471,10 @@ export default function Dashboard() {
             <input
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.empresa}
-              onChange={(e)=>
+              onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
-                  empresa:e.target.value
+                  empresa: e.target.value
                 })
               }
             />
@@ -483,7 +483,7 @@ export default function Dashboard() {
               placeholder="Valor (R$)"
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.valor}
-              onChange={(e)=>
+              onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
                   valor: aplicarMascaraReal(e.target.value)
@@ -495,10 +495,10 @@ export default function Dashboard() {
               type="date"
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.vencimento}
-              onChange={(e)=>
+              onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
-                  vencimento:e.target.value
+                  vencimento: e.target.value
                 })
               }
             />
@@ -507,10 +507,10 @@ export default function Dashboard() {
               placeholder="NF"
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.numeroNF || ""}
-              onChange={(e)=>
+              onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
-                  numeroNF:e.target.value
+                  numeroNF: e.target.value
                 })
               }
             />
@@ -519,10 +519,10 @@ export default function Dashboard() {
               placeholder="Linha digitável"
               className="bg-gray-700 p-2 rounded w-full mb-3"
               value={boletoEditando.linhaDigitavel || ""}
-              onChange={(e)=>
+              onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
-                  linhaDigitavel:e.target.value
+                  linhaDigitavel: e.target.value
                 })
               }
             />
@@ -537,7 +537,7 @@ export default function Dashboard() {
               </button>
 
               <button
-                onClick={()=>setModalEditar(false)}
+                onClick={() => setModalEditar(false)}
                 className="bg-gray-600 px-4 py-2 rounded"
               >
                 Cancelar
@@ -576,7 +576,7 @@ export default function Dashboard() {
                 </div>
 
                 <button
-                  onClick={()=>{
+                  onClick={() => {
                     navigator.clipboard.writeText(
                       boletoVisualizando.linhaDigitavel
                     )
@@ -623,7 +623,7 @@ export default function Dashboard() {
             )}
 
             <button
-              onClick={()=>setModalBoleto(false)}
+              onClick={() => setModalBoleto(false)}
               className="mt-4 bg-gray-600 px-4 py-2 rounded w-full"
             >
               Fechar
@@ -641,7 +641,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-xl w-96">
             <h2 className="text-xl mb-4 font-bold text-green-400">Dar Baixa no Boleto</h2>
-            
+
             <label className="block text-gray-400 text-sm mb-1">Data de Pagamento</label>
             <input
               type="date"

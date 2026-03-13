@@ -39,18 +39,28 @@ export default function Empresas() {
 
   function formatarCNPJ(valor) {
 
-    let numeros = valor.replace(/\D/g, "");
+    // Permite alfanumérico e converte para maiúsculo
+    let chars = valor.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
-    if (numeros.length > 14) {
-      numeros = numeros.slice(0, 14);
+    if (chars.length > 14) {
+      chars = chars.slice(0, 14);
     }
 
-    numeros = numeros.replace(/^(\d{2})(\d)/, "$1.$2");
-    numeros = numeros.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
-    numeros = numeros.replace(/\.(\d{3})(\d)/, ".$1/$2");
-    numeros = numeros.replace(/(\d{4})(\d)/, "$1-$2");
+    // Garante que os 2 últimos caracteres (DV) sejam apenas números
+    if (chars.length > 12) {
+      let base = chars.slice(0, 12);
+      let dv = chars.slice(12).replace(/\D/g, ""); // Remove qualquer letra do DV
+      chars = base + dv;
+    }
 
-    return numeros;
+    // Aplica a máscara XX.XXX.XXX/XXXX-XX
+    if (chars.length > 12) chars = chars.replace(/^(.{2})(.{3})(.{3})(.{4})(.+)/, "$1.$2.$3/$4-$5");
+    else if (chars.length > 8) chars = chars.replace(/^(.{2})(.{3})(.{3})(.+)/, "$1.$2.$3/$4");
+    else if (chars.length > 5) chars = chars.replace(/^(.{2})(.{3})(.+)/, "$1.$2.$3");
+    else if (chars.length > 2) chars = chars.replace(/^(.{2})(.+)/, "$1.$2");
+
+    return chars;
+
   }
 
   function handleCNPJ(e) {
@@ -59,7 +69,7 @@ export default function Empresas() {
   }
 
   function limparCNPJ(valor) {
-    return valor.replace(/\D/g, "");
+    return valor.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   }
 
   // =========================
@@ -223,6 +233,7 @@ export default function Empresas() {
 
           <input
             placeholder="UF"
+            maxLength={2}
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={uf}
             onChange={(e) => setUf(e.target.value)}
@@ -245,37 +256,35 @@ export default function Empresas() {
         <table className="w-full text-sm">
 
           <thead>
-            <tr className="text-left border-b border-gray-600 text-gray-400">
-              <th className="pb-2">CNPJ</th>
-              <th className="pb-2">Empresa</th>
-              <th className="pb-2">Cidade</th>
-              <th className="pb-2">UF</th>
-              <th className="pb-2">Ações</th>
+            <tr className="text-left border-b border-gray-600">
+              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
+              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
+              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
+              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
             </tr>
           </thead>
 
           <tbody>
             {empresas.map((e) => (
-              <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700">
-                <td className="py-2">{e.cnpj}</td>
-                <td>{e.razao}</td>
-                <td>{e.cidade}</td>
-                <td>{e.uf}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => abrirEdicao(e)}
-                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-xs"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleExcluir(e.id)}
-                      className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-xs"
-                    >
-                      Excluir
-                    </button>
-                  </div>
+              <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
+                <td className="py-3">{e.cnpj}</td>
+                <td className="py-3">{e.razao}</td>
+                <td className="py-3">{e.cidade}</td>
+                <td className="py-3">{e.uf}</td>
+                <td className="py-3 flex gap-2 whitespace-nowrap">
+                  <button
+                    onClick={() => abrirEdicao(e)}
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleExcluir(e.id)}
+                    className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                  >
+                    Excluir
+                  </button>
                 </td>
               </tr>
             ))}
@@ -290,7 +299,7 @@ export default function Empresas() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Editar Empresa</h2>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <input
                 placeholder="CNPJ"
@@ -323,6 +332,7 @@ export default function Empresas() {
 
               <input
                 placeholder="UF"
+                maxLength={2}
                 className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={editUf}
                 onChange={(e) => setEditUf(e.target.value)}
