@@ -5,12 +5,21 @@ import Empresas from "./pages/Empresas";
 import Notas from "./pages/Notas";
 import Grafico from "./pages/Grafico";
 import Login from "./pages/Login";
+import Cadastro from "./pages/Cadastro";
 import PrivateRoute from "./components/auth/PrivateRoute";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route
+        path="/cadastro"
+        element={
+          <PrivateRoute>
+            <Cadastro />
+          </PrivateRoute>
+        }
+      />
 
       <Route
         path="/"

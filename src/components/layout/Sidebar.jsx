@@ -38,6 +38,10 @@ export default function Sidebar() {
           📊 Gráfico
         </Link>
 
+        <Link to="/cadastro" className={linkClass("/cadastro")}>
+          👤 Cadastro
+        </Link>
+
 
       </nav>
     </div>
