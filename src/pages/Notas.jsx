@@ -31,6 +31,16 @@ export default function Notas() {
   const [linhaDigitavel, setLinhaDigitavel] = useState("");
   const [pdfBoleto, setPdfBoleto] = useState(null);
 
+  // Estados para Código de Barras
+  const [modalBarcode, setModalBarcode] = useState(false);
+  const [barcode, setBarcode] = useState("");
+  const [bcNumero, setBcNumero] = useState("");
+  const [bcCnpj, setBcCnpj] = useState("");
+  const [bcValor, setBcValor] = useState("");
+  const [bcEmpresa, setBcEmpresa] = useState("");
+  const [bcCidade, setBcCidade] = useState("");
+  const [bcUf, setBcUf] = useState("");
+
   useEffect(() => {
     carregar();
   }, []);
@@ -112,6 +122,92 @@ export default function Notas() {
   }
 
   // =========================
+  // IMPORTAR CÓDIGO DE BARRAS (CHAVE DE ACESSO)
+  // =========================
+
+  async function handleBarcodeChange(e) {
+    const val = e.target.value;
+    setBarcode(val);
+
+    // Se tiver 44 dígitos, é a chave de acesso da NF-e
+    if (val.length === 44) {
+      const cnpjExtraido = val.substring(6, 20);
+      const numeroNFExtraido = Number(val.substring(25, 34)).toString();
+
+      setBcCnpj(cnpjExtraido);
+      setBcNumero(numeroNFExtraido);
+
+      // Tenta buscar empresa cadastrada
+      const emp = await getEmpresaByCNPJ(cnpjExtraido);
+      if (emp) {
+        setBcEmpresa(emp.razao || emp.empresa || "");
+        setBcCidade(emp.cidade || "");
+        setBcUf(emp.uf || "");
+      } else {
+        setBcEmpresa("");
+        setBcCidade("");
+        setBcUf("");
+      }
+    }
+  }
+
+  function handleBarcodeKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+    if (e.ctrlKey && e.key.toLowerCase() === "j") {
+      e.preventDefault();
+    }
+  }
+
+  async function salvarBarcode() {
+    if (!bcNumero || !bcCnpj || !bcValor || !bcEmpresa) {
+      alert("Preencha todos os campos corretamente (ou escaneie o código novamente e informe valor/empresa).");
+      return;
+    }
+
+    const duplicado = await existeNota(bcNumero, bcCnpj);
+
+    if (duplicado) {
+      alert("Nota já cadastrada");
+      return;
+    }
+
+    let emp = await getEmpresaByCNPJ(bcCnpj);
+
+    if (!emp) {
+      await addEmpresa({
+        razao: bcEmpresa,
+        cnpj: bcCnpj,
+        cidade: bcCidade,
+        uf: bcUf
+      });
+    }
+
+    await addNota({
+      numeroNF: bcNumero,
+      valor: Number(bcValor),
+      empresa: bcEmpresa,
+      cnpj: bcCnpj,
+      usadaEmBoleto: false
+    });
+
+    alert("Nota adicionada com sucesso!");
+    setModalBarcode(false);
+    
+    // Limpar estados
+    setBarcode("");
+    setBcNumero("");
+    setBcCnpj("");
+    setBcValor("");
+    setBcEmpresa("");
+    setBcCidade("");
+    setBcUf("");
+
+    carregar();
+  }
+
+  // =========================
   // SELECIONAR NOTAS
   // =========================
 
@@ -174,9 +270,8 @@ export default function Notas() {
         0
       );
 
-      const descricao =
-        "Fatura NF " +
-        notasSelecionadas.map((n) => n.numeroNF).join(",");
+      const arrayNumerosNF = notasSelecionadas.map((n) => n.numeroNF).join(", ");
+      const descricao = "Fatura NF " + arrayNumerosNF;
 
       const valorParcela = total / parcelas;
 
@@ -221,7 +316,8 @@ export default function Notas() {
           pdf: pdfUrl,
           parcela: i,
           totalParcelas: parcelas,
-          pago: false
+          pago: false,
+          numeroNF: arrayNumerosNF
         });
 
         if (!primeiroBoletoId) {
@@ -268,16 +364,31 @@ export default function Notas() {
         Notas Fiscais
       </h1>
 
-      {/* IMPORTAR XML */}
+      {/* IMPORTAR XML E CÓDIGO DE BARRAS */}
 
-      <div className="bg-gray-800 p-4 rounded-xl mb-6">
+      <div className="bg-gray-800 p-4 rounded-xl mb-6 flex items-center gap-4">
 
-        <input
-          type="file"
-          accept=".xml"
-          onChange={importarXML}
-          className="bg-gray-700 p-2 rounded text-white"
-        />
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Importar XML</label>
+          <input
+            type="file"
+            accept=".xml"
+            onChange={importarXML}
+            className="bg-gray-700 p-2 rounded text-white"
+          />
+        </div>
+
+        <div className="text-gray-400">ou</div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Leitor de Código de Barras (NF-e)</label>
+          <button
+            onClick={() => setModalBarcode(true)}
+            className="bg-blue-600 px-4 py-2 rounded text-white font-medium"
+          >
+            Escanear Código de Barras
+          </button>
+        </div>
 
       </div>
 
@@ -427,6 +538,78 @@ export default function Notas() {
 
         </div>
 
+      )}
+
+      {/* MODAL CÓDIGO DE BARRAS */}
+
+      {modalBarcode && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+            <h2 className="text-xl mb-4 font-bold text-blue-400">Adicionar via Código de Barras</h2>
+
+            <label className="block text-gray-400 text-sm mb-1">Passe o leitor aqui (Chave 44 dígitos)</label>
+            <input
+              autoFocus
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={barcode}
+              onChange={handleBarcodeChange}
+              onKeyDown={handleBarcodeKeyDown}
+              placeholder="Escaneie o código de barras..."
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Número NF</label>
+                <input
+                  className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+                  value={bcNumero}
+                  onChange={(e) => setBcNumero(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">CNPJ</label>
+                <input
+                  className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+                  value={bcCnpj}
+                  onChange={(e) => setBcCnpj(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <label className="block text-gray-400 text-sm mb-1">Empresa</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={bcEmpresa}
+              onChange={(e) => setBcEmpresa(e.target.value)}
+              placeholder="Nome da empresa..."
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Valor da NF (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={bcValor}
+              onChange={(e) => setBcValor(e.target.value)}
+              placeholder="0.00"
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setModalBarcode(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarBarcode}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Salvar Nota
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </MainLayout>
