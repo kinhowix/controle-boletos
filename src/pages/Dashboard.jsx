@@ -71,7 +71,12 @@ export default function Dashboard() {
   }
 
   const totalPago = boletos
-    .filter(b => b.pago)
+    .filter(b => {
+      if (!b.pago) return false;
+      if (mesFiltro === "") return true;
+      const data = converterData(b.vencimento);
+      return data && data.getMonth() + 1 === Number(mesFiltro);
+    })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
   const totalPendente = boletos
@@ -87,10 +92,14 @@ export default function Dashboard() {
 
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+
   const totalVencido = boletos
     .filter(b => {
+      if (b.pago) return false;
       const data = converterData(b.vencimento);
-      return !b.pago && data && data < hoje;
+      if (!data || data >= hoje) return false;
+      if (mesFiltro === "") return true;
+      return data.getMonth() + 1 === Number(mesFiltro);
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
