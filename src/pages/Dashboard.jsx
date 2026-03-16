@@ -26,6 +26,10 @@ export default function Dashboard() {
     new Date().getMonth() + 1
   );
 
+  const [anoFiltro, setAnoFiltro] = useState(
+    new Date().getFullYear()
+  );
+
   const [empresaFiltro, setEmpresaFiltro] = useState("");
 
   const [modalEditar, setModalEditar] = useState(false);
@@ -73,9 +77,11 @@ export default function Dashboard() {
   const totalPago = boletos
     .filter(b => {
       if (!b.pago) return false;
-      if (mesFiltro === "") return true;
       const data = converterData(b.vencimento);
-      return data && data.getMonth() + 1 === Number(mesFiltro);
+      if (!data) return false;
+      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
+      if (mesFiltro === "") return true;
+      return data.getMonth() + 1 === Number(mesFiltro);
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
@@ -84,11 +90,14 @@ export default function Dashboard() {
 
       if (b.pago) return false;
 
+      const data = converterData(b.vencimento);
+      if (!data) return false;
+
+      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
+
       if (mesFiltro === "") return true;
 
-      const data = converterData(b.vencimento);
-
-      return data && data.getMonth() + 1 === Number(mesFiltro);
+      return data.getMonth() + 1 === Number(mesFiltro);
 
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
@@ -98,6 +107,7 @@ export default function Dashboard() {
       if (b.pago) return false;
       const data = converterData(b.vencimento);
       if (!data || data >= hoje) return false;
+      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
       if (mesFiltro === "") return true;
       return data.getMonth() + 1 === Number(mesFiltro);
     })
@@ -116,6 +126,10 @@ export default function Dashboard() {
 
     const data = converterData(b.vencimento);
 
+    const filtroAno =
+      anoFiltro === "" ||
+      (data && data.getFullYear() === Number(anoFiltro));
+
     const filtroMes =
       mesFiltro === "" ||
       (data && data.getMonth() + 1 === Number(mesFiltro));
@@ -126,7 +140,7 @@ export default function Dashboard() {
         empresaFiltro.toLowerCase()
       );
 
-    return filtroMes && filtroEmpresa;
+    return filtroAno && filtroMes && filtroEmpresa;
 
   });
 
@@ -316,6 +330,24 @@ export default function Dashboard() {
           {/* FILTROS */}
 
           <div className="bg-gray-800 p-4 rounded-xl mb-6 flex gap-4">
+
+            <select
+              value={anoFiltro}
+              onChange={(e) =>
+                setAnoFiltro(e.target.value)
+              }
+              className="bg-gray-700 p-2 rounded"
+            >
+              <option value="">Todos os anos</option>
+              {Array.from({ length: 15 }).map((_, i) => {
+                const year = new Date().getFullYear() - 5 + i;
+                return (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                );
+              })}
+            </select>
 
             <select
               value={mesFiltro}
