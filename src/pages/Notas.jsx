@@ -28,8 +28,8 @@ export default function Notas() {
   const [vencimento, setVencimento] = useState("");
   const [parcelas, setParcelas] = useState(1);
 
-  const [linhaDigitavel, setLinhaDigitavel] = useState("");
-  const [pdfBoleto, setPdfBoleto] = useState(null);
+  const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
+  const [pdfsBoletos, setPdfsBoletos] = useState({});
 
   // Estados para Código de Barras
   const [modalBarcode, setModalBarcode] = useState(false);
@@ -276,28 +276,31 @@ export default function Notas() {
       const valorParcela = total / parcelas;
 
       let primeiroBoletoId = null;
-      let pdfUrl = "";
-
-      // Conversão do PDF para um texto seguro (Base64) //
-      if (pdfBoleto) {
-        if (pdfBoleto.size > 800 * 1024) {
-          alert("O arquivo PDF é muito grande. O limite máximo seguro é 800 KB.");
-          return;
-        }
-        try {
-          pdfUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(pdfBoleto);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = (e) => reject(e);
-          });
-        } catch (error) {
-          console.error("Erro na leitura do PDF", error);
-          alert("Não foi possível ler o PDF, ele será ignorado.");
-        }
-      }
 
       for (let i = 1; i <= parcelas; i++) {
+        const index = i - 1;
+
+        let pdfUrl = "";
+        const pdfFile = pdfsBoletos[index];
+
+        // Conversão do PDF para um texto seguro (Base64) //
+        if (pdfFile) {
+          if (pdfFile.size > 800 * 1024) {
+            alert(`O arquivo PDF da parcela ${i} é muito grande. O limite máximo seguro é 800 KB.`);
+            return;
+          }
+          try {
+            pdfUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(pdfFile);
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = (e) => reject(e);
+            });
+          } catch (error) {
+            console.error("Erro na leitura do PDF", error);
+            alert(`Não foi possível ler o PDF da parcela ${i}, ele será ignorado.`);
+          }
+        }
 
         const dataParcela = new Date(
           vencimento + "T12:00:00"
@@ -312,7 +315,7 @@ export default function Notas() {
           valor: valorParcela,
           descricao,
           vencimento: dataParcela,
-          linhaDigitavel: linhaDigitavel || "",
+          linhaDigitavel: linhasDigitaveis[index] || "",
           pdf: pdfUrl,
           parcela: i,
           totalParcelas: parcelas,
@@ -471,9 +474,9 @@ export default function Notas() {
 
       {modal && (
 
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
 
-          <div className="bg-gray-800 p-6 rounded-xl w-96">
+          <div className="bg-gray-800 p-6 rounded-xl w-96 max-h-[90vh] overflow-y-auto">
 
             <h2 className="text-xl mb-4">
               Gerar boletos
@@ -498,23 +501,32 @@ export default function Notas() {
               className="bg-gray-700 p-2 rounded w-full mb-3"
             />
 
-            <input
-              placeholder="Linha digitável (opcional)"
-              value={linhaDigitavel}
-              onChange={(e) =>
-                setLinhaDigitavel(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded w-full mb-3"
-            />
-
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) =>
-                setPdfBoleto(e.target.files[0])
-              }
-              className="mb-4"
-            />
+            <div className="mb-4 space-y-4 max-h-60 overflow-y-auto pr-2">
+              {Array.from({ length: parcelas || 1 }).map((_, i) => (
+                <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
+                  <input
+                    placeholder="Linha digitável (opcional)"
+                    value={linhasDigitaveis[i] || ""}
+                    onChange={(e) =>
+                      setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                    }
+                    className="bg-gray-800 p-2 rounded w-full mb-3 border border-gray-600"
+                  />
+                  <label className="block mb-2 text-sm text-gray-400">
+                    Anexar PDF do Boleto (Opcional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) =>
+                      setPdfsBoletos({ ...pdfsBoletos, [i]: e.target.files[0] })
+                    }
+                    className="w-full text-sm text-gray-300"
+                  />
+                </div>
+              ))}
+            </div>
 
             <div className="flex gap-3">
 
