@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [boletoBaixa, setBoletoBaixa] = useState(null);
   const [baixaData, setBaixaData] = useState(new Date().toISOString().substring(0, 10));
   const [baixaBanco, setBaixaBanco] = useState("");
+  const [baixaValor, setBaixaValor] = useState("");
   const [novoBanco, setNovoBanco] = useState("");
 
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function Dashboard() {
       if (mesFiltro === "") return true;
       return data.getMonth() + 1 === Number(mesFiltro);
     })
-    .reduce((acc, b) => acc + Number(b.valor || 0), 0);
+    .reduce((acc, b) => acc + Number(b.valorPago || b.valor || 0), 0);
 
   const totalPendente = boletos
     .filter(b => {
@@ -155,6 +156,7 @@ export default function Dashboard() {
         pago: false,
         dataPagamento: null,
         banco: null,
+        valorPago: null,
       });
       carregarBoletos();
       return;
@@ -163,6 +165,7 @@ export default function Dashboard() {
     setBoletoBaixa(boleto);
     setBaixaData(new Date().toISOString().substring(0, 10));
     setBaixaBanco("");
+    setBaixaValor(formatarReal(boleto.valor));
     setNovoBanco("");
     setModalBaixa(true);
   }
@@ -187,6 +190,7 @@ export default function Dashboard() {
       pago: true,
       dataPagamento: baixaData,
       banco: bancoSelecionado,
+      valorPago: parseReal(baixaValor),
     });
 
     setModalBaixa(false);
@@ -465,7 +469,7 @@ export default function Dashboard() {
                   return (
                     <tr key={b.id} className="border-b border-gray-700">
                       <td className="py-3">{b.empresa}</td>
-                      <td className="py-3">R$ {formatarReal(b.valor)}</td>
+                      <td className="py-3">R$ {formatarReal(b.valorPago || b.valor)}</td>
                       <td className="py-3">{b.numeroNF || "-"}</td>
                       <td className="py-3">{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
                       <td className="py-3">{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
@@ -505,12 +509,12 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl w-96">
 
-            <h2 className="text-xl mb-4">
+            <h2 className="text-xl mb-4 font-bold text-yellow-400">
               Editar boleto
             </h2>
 
             <input
-              className="bg-gray-700 p-2 rounded w-full mb-3"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={boletoEditando.empresa}
               onChange={(e) =>
                 setBoletoEditando({
@@ -522,7 +526,7 @@ export default function Dashboard() {
 
             <input
               placeholder="Valor (R$)"
-              className="bg-gray-700 p-2 rounded w-full mb-3"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={boletoEditando.valor}
               onChange={(e) =>
                 setBoletoEditando({
@@ -534,7 +538,7 @@ export default function Dashboard() {
 
             <input
               type="date"
-              className="bg-gray-700 p-2 rounded w-full mb-3"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={boletoEditando.vencimento}
               onChange={(e) =>
                 setBoletoEditando({
@@ -546,7 +550,7 @@ export default function Dashboard() {
 
             <input
               placeholder="NF"
-              className="bg-gray-700 p-2 rounded w-full mb-3"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={boletoEditando.numeroNF || ""}
               onChange={(e) =>
                 setBoletoEditando({
@@ -558,7 +562,7 @@ export default function Dashboard() {
 
             <input
               placeholder="Linha digitável"
-              className="bg-gray-700 p-2 rounded w-full mb-3"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={boletoEditando.linhaDigitavel || ""}
               onChange={(e) =>
                 setBoletoEditando({
@@ -572,14 +576,14 @@ export default function Dashboard() {
 
               <button
                 onClick={salvarEdicao}
-                className="bg-green-600 px-4 py-2 rounded"
+                className="bg-green-600 px-4 py-2 rounded text-white"
               >
                 Salvar
               </button>
 
               <button
                 onClick={() => setModalEditar(false)}
-                className="bg-gray-600 px-4 py-2 rounded"
+                className="bg-gray-600 px-4 py-2 rounded text-white"
               >
                 Cancelar
               </button>
@@ -600,19 +604,19 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl w-96">
 
-            <h2 className="text-xl mb-4">
-              Boleto
+            <h2 className="text-xl mb-4 font-bold text-yellow-400">
+              Boleto Pendente
             </h2>
 
             {boletoVisualizando?.linhaDigitavel && (
 
               <div className="mb-4">
 
-                <div className="text-sm text-gray-400">
+                <div className="text-xl p-2 rounded font-semibold text-gray-400">
                   Linha digitável
                 </div>
 
-                <div className="bg-gray-700 p-2 rounded break-all">
+                <div className="bg-gray-700 p-2 rounded break-all text-white">
                   {boletoVisualizando.linhaDigitavel}
                 </div>
 
@@ -622,7 +626,7 @@ export default function Dashboard() {
                       boletoVisualizando.linhaDigitavel
                     )
                   }}
-                  className="mt-2 bg-blue-600 px-3 py-1 rounded"
+                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-gray-400"
                 >
                   Copiar
                 </button>
@@ -665,7 +669,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => setModalBoleto(false)}
-              className="mt-4 bg-gray-600 px-4 py-2 rounded w-full"
+              className="mt-4 bg-gray-600 px-4 py-2 rounded w-full text-white"
             >
               Fechar
             </button>
@@ -689,6 +693,14 @@ export default function Dashboard() {
               className="bg-gray-700 p-2 rounded w-full mb-4"
               value={baixaData}
               onChange={(e) => setBaixaData(e.target.value)}
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Valor Pago (R$)</label>
+            <input
+              placeholder="0,00"
+              className="bg-gray-700 p-2 rounded w-full mb-4"
+              value={baixaValor}
+              onChange={(e) => setBaixaValor(aplicarMascaraReal(e.target.value))}
             />
 
             <label className="block text-gray-400 text-sm mb-1">Conta Bancária</label>
