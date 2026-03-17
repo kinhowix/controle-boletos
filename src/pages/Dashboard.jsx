@@ -85,6 +85,7 @@ export default function Dashboard() {
     }, 0);
   }
   const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
   function converterData(vencimento) {
 
@@ -94,7 +95,9 @@ export default function Dashboard() {
       return vencimento.toDate();
     }
 
-    return new Date(vencimento);
+    const data = new Date(vencimento);
+    data.setHours(0, 0, 0, 0);
+    return data;
 
   }
 
