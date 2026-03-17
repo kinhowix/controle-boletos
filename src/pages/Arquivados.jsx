@@ -252,9 +252,17 @@ export default function Arquivados() {
                     const dataVenc = converterData(b.vencimento);
                     return (
                       <tr key={b.id} className="border-b border-gray-700">
-                        <td className="py-3">{b.empresa}</td>
+                        <td className="py-3">
+                          <div className="max-w-[200px] overflow-x-auto whitespace-nowrap scrollbar-thin">
+                            {b.empresa}
+                          </div>
+                        </td>
                         <td className="py-3">R$ {formatarReal(b.valorPago || b.valor)}</td>
-                        <td className="py-3">{b.numeroNF || "-"}</td>
+                        <td className="py-3">
+                          <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
+                            {b.numeroNF || "-"}
+                          </div>
+                        </td>
                         <td className="py-3">{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
                         <td className="py-3">{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
                         <td className="py-3">{b.banco || "-"}</td>
