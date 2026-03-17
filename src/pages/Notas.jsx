@@ -11,12 +11,13 @@ import {
 
 import {
   getEmpresaByCNPJ,
-  addEmpresa
+  addEmpresa,
+  getEmpresas
 } from "../services/empresasService";
 
 import { addBoleto } from "../services/boletosService";
 
-import { formatarReal } from "../utils/formatCurrency";
+import { formatarReal, aplicarMascaraReal, parseReal } from "../utils/formatCurrency";
 
 export default function Notas() {
 
@@ -41,6 +42,14 @@ export default function Notas() {
   const [bcCidade, setBcCidade] = useState("");
   const [bcUf, setBcUf] = useState("");
 
+  // Estados para Inserção Manual
+  const [modalManual, setModalManual] = useState(false);
+  const [manualNumero, setManualNumero] = useState("");
+  const [manualValor, setManualValor] = useState("");
+  const [manualEmpresa, setManualEmpresa] = useState(null);
+  const [buscaEmpresa, setBuscaEmpresa] = useState("");
+  const [empresas, setEmpresas] = useState([]);
+
   useEffect(() => {
     carregar();
   }, []);
@@ -54,6 +63,9 @@ export default function Notas() {
     );
 
     setNotas(disponiveis);
+
+    const emps = await getEmpresas();
+    setEmpresas(emps || []);
 
   }
 
@@ -203,6 +215,49 @@ export default function Notas() {
     setBcEmpresa("");
     setBcCidade("");
     setBcUf("");
+
+    carregar();
+  }
+
+  // =========================
+  // SALVAR MANUAL
+  // =========================
+
+  async function salvarManual() {
+    if (!manualNumero || !manualValor || !manualEmpresa) {
+      alert("Preencha todos os campos e selecione uma empresa.");
+      return;
+    }
+
+    const valorNumerico = parseReal(manualValor);
+    if (valorNumerico <= 0) {
+      alert("Informe um valor válido");
+      return;
+    }
+
+    const duplicado = await existeNota(manualNumero, manualEmpresa.cnpj);
+
+    if (duplicado) {
+      alert("Nota já cadastrada");
+      return;
+    }
+
+    await addNota({
+      numeroNF: manualNumero,
+      valor: valorNumerico,
+      empresa: manualEmpresa.razao,
+      cnpj: manualEmpresa.cnpj || "",
+      usadaEmBoleto: false
+    });
+
+    alert("Nota adicionada com sucesso!");
+    setModalManual(false);
+
+    // Limpar estados
+    setManualNumero("");
+    setManualValor("");
+    setManualEmpresa(null);
+    setBuscaEmpresa("");
 
     carregar();
   }
@@ -390,6 +445,18 @@ export default function Notas() {
             className="bg-blue-600 px-4 py-2 rounded text-white font-medium"
           >
             Escanear Código de Barras
+          </button>
+        </div>
+
+        <div className="text-gray-400">ou</div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Lançamento Manual</label>
+          <button
+            onClick={() => setModalManual(true)}
+            className="bg-purple-600 px-4 py-2 rounded text-white font-medium"
+          >
+            Adicionar Manualmente
           </button>
         </div>
 
@@ -617,6 +684,93 @@ export default function Notas() {
               </button>
               <button
                 onClick={salvarBarcode}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Salvar Nota
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MANUAL */}
+
+      {modalManual && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+            <h2 className="text-xl mb-4 font-bold text-purple-400">Adicionar Nota Manual</h2>
+
+            <label className="block text-gray-400 text-sm mb-1">Número da Nota</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={manualNumero}
+              onChange={(e) => setManualNumero(e.target.value)}
+              placeholder="Ex: 12345"
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Pesquisar Empresa</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-2 text-white"
+              value={buscaEmpresa}
+              onChange={(e) => setBuscaEmpresa(e.target.value)}
+              placeholder="Digite o nome da empresa..."
+            />
+            
+            {buscaEmpresa && !manualEmpresa && (
+              <div className="bg-gray-700 rounded mb-3 max-h-40 overflow-y-auto border border-gray-600">
+                {empresas.filter(e => e.razao?.toLowerCase().includes(buscaEmpresa.toLowerCase())).map(e => (
+                  <div 
+                    key={e.id}
+                    className="p-2 hover:bg-gray-600 cursor-pointer text-sm border-b border-gray-700 last:border-0"
+                    onClick={() => {
+                      setManualEmpresa(e);
+                      setBuscaEmpresa(e.razao);
+                    }}
+                  >
+                    {e.razao} {e.cnpj ? `(${e.cnpj})` : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {manualEmpresa && (
+              <div className="bg-gray-900/50 p-2 rounded mb-3 text-sm text-green-400 border border-green-900/50 flex justify-between items-center">
+                <span>Empresa: <strong>{manualEmpresa.razao}</strong></span>
+                <button 
+                  className="text-xs text-gray-400 hover:text-white"
+                  onClick={() => {
+                    setManualEmpresa(null);
+                    setBuscaEmpresa("");
+                  }}
+                >
+                  alterar
+                </button>
+              </div>
+            )}
+
+            <label className="block text-gray-400 text-sm mb-1">Valor da Nota (R$)</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={manualValor}
+              onChange={(e) => setManualValor(aplicarMascaraReal(e.target.value))}
+              placeholder="0,00"
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setModalManual(false);
+                  setManualNumero("");
+                  setManualValor("");
+                  setManualEmpresa(null);
+                  setBuscaEmpresa("");
+                }}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarManual}
                 className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
               >
                 Salvar Nota
