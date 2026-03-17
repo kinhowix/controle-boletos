@@ -23,6 +23,7 @@ export default function Empresas() {
   const [editFantasia, setEditFantasia] = useState("");
   const [editCidade, setEditCidade] = useState("");
   const [editUf, setEditUf] = useState("");
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     carregar();
@@ -80,6 +81,16 @@ export default function Empresas() {
 
     const cnpjLimpo = limparCNPJ(cnpj);
 
+    // 🔒 VERIFICA SE CNPJ JÁ EXISTE
+    const jaExiste = empresas.some(
+      (e) => limparCNPJ(e.cnpj) === cnpjLimpo
+    );
+
+    if (jaExiste) {
+      alert("Este CNPJ já está cadastrado.");
+      return;
+    }
+
     if (cnpjLimpo.length < 14) {
       alert("CNPJ inválido");
       return;
@@ -102,6 +113,7 @@ export default function Empresas() {
       alert("Erro ao buscar CNPJ");
     }
   }
+
 
   // =========================
   // SALVAR
@@ -184,6 +196,22 @@ export default function Empresas() {
     }
   }
 
+  // =========================
+  // FILTRO DE BUSCA
+  // =========================
+
+  const empresasFiltradas = empresas.filter((e) => {
+
+    const termo = busca.toLowerCase();
+
+    return (
+      (e.razao && e.razao.toLowerCase().includes(termo)) ||
+      (e.fantasia && e.fantasia.toLowerCase().includes(termo)) ||
+      (e.cnpj && limparCNPJ(e.cnpj).includes(limparCNPJ(termo)))
+    );
+
+  });
+
   return (
     <MainLayout>
 
@@ -254,6 +282,12 @@ export default function Empresas() {
       <div className="bg-gray-800 p-6 rounded-2xl shadow-lg">
 
         <div className="max-h-[240px] overflow-y-auto pr-2">
+          <input
+            placeholder="Buscar por empresa ou CNPJ..."
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white mb-4 w-full"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
           <table className="w-full text-sm">
 
             <thead className="sticky top-0 bg-gray-800 z-10">
@@ -267,7 +301,7 @@ export default function Empresas() {
             </thead>
 
             <tbody>
-              {empresas.map((e) => (
+              {empresasFiltradas.map((e) => (
                 <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
                   <td className="py-3">{e.cnpj}</td>
                   <td className="py-3">{e.razao}</td>
