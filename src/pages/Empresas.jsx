@@ -187,7 +187,7 @@ export default function Empresas() {
   return (
     <MainLayout>
 
-      <h1 className="text-2xl font-semibold mb-6">
+      <h1 className="text-2xl font-semibold mb-2">
         Empresas
       </h1>
 
@@ -253,44 +253,46 @@ export default function Empresas() {
       {/* LISTA */}
       <div className="bg-gray-800 p-6 rounded-2xl shadow-lg">
 
-        <table className="w-full text-sm">
+        <div className="max-h-[240px] overflow-y-auto pr-2">
+          <table className="w-full text-sm">
 
-          <thead>
-            <tr className="text-left border-b border-gray-600">
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {empresas.map((e) => (
-              <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
-                <td className="py-3">{e.cnpj}</td>
-                <td className="py-3">{e.razao}</td>
-                <td className="py-3">{e.cidade}</td>
-                <td className="py-3">{e.uf}</td>
-                <td className="py-3 flex gap-2 whitespace-nowrap">
-                  <button
-                    onClick={() => abrirEdicao(e)}
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white text-xs font-medium"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleExcluir(e.id)}
-                    className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
-                  >
-                    Excluir
-                  </button>
-                </td>
+            <thead className="sticky top-0 bg-gray-800 z-10">
+              <tr className="text-left border-b border-gray-600">
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
               </tr>
-            ))}
-          </tbody>
+            </thead>
 
-        </table>
+            <tbody>
+              {empresas.map((e) => (
+                <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
+                  <td className="py-3">{e.cnpj}</td>
+                  <td className="py-3">{e.razao}</td>
+                  <td className="py-3">{e.cidade}</td>
+                  <td className="py-3">{e.uf}</td>
+                  <td className="py-3 flex gap-2 whitespace-nowrap">
+                    <button
+                      onClick={() => abrirEdicao(e)}
+                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(e.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+        </div>
 
       </div>
 
