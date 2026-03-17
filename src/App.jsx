@@ -6,6 +6,7 @@ import Notas from "./pages/Notas";
 import Grafico from "./pages/Grafico";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
+import Arquivados from "./pages/Arquivados";
 import PrivateRoute from "./components/auth/PrivateRoute";
 
 export default function App() {
@@ -55,6 +56,15 @@ export default function App() {
         element={
           <PrivateRoute>
             <Grafico />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/arquivados"
+        element={
+          <PrivateRoute>
+            <Arquivados />
           </PrivateRoute>
         }
       />

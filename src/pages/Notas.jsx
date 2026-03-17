@@ -194,7 +194,7 @@ export default function Notas() {
 
     alert("Nota adicionada com sucesso!");
     setModalBarcode(false);
-    
+
     // Limpar estados
     setBarcode("");
     setBcNumero("");
@@ -398,68 +398,70 @@ export default function Notas() {
       {/* LISTA */}
 
       <div className="bg-gray-800 p-6 rounded-2xl">
+        <div className="max-h-[240px] overflow-y-auto pr-2">
 
-        <table className="w-full">
+          <table className="w-full">
 
-          <thead>
+            <thead>
 
-            <tr className="border-b border-gray-600 text-left text-gray-400">
+              <tr className="border-b border-gray-600 text-left text-gray-400">
 
-              <th></th>
-              <th>NF</th>
-              <th>Empresa</th>
-              <th>Valor</th>
-              <th>Ações</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {notas.map((n) => (
-
-              <tr
-                key={n.id}
-                className="border-b border-gray-700"
-              >
-
-                <td>
-
-                  <input
-                    type="checkbox"
-                    checked={selecionadas.includes(n.id)}
-                    onChange={() => toggleNota(n.id)}
-                  />
-
-                </td>
-
-                <td>{n.numeroNF}</td>
-
-                <td>{n.empresa}</td>
-
-                <td>
-                  R$ {formatarReal(n.valor)}
-                </td>
-
-                <td>
-
-                  <button
-                    onClick={() => excluir(n.id)}
-                    className="text-red-400"
-                  >
-                    excluir
-                  </button>
-
-                </td>
+                <th></th>
+                <th>NF</th>
+                <th>Empresa</th>
+                <th>Valor</th>
+                <th>Ações</th>
 
               </tr>
 
-            ))}
+            </thead>
 
-          </tbody>
+            <tbody>
 
-        </table>
+              {notas.map((n) => (
+
+                <tr
+                  key={n.id}
+                  className="border-b border-gray-700"
+                >
+
+                  <td>
+
+                    <input
+                      type="checkbox"
+                      checked={selecionadas.includes(n.id)}
+                      onChange={() => toggleNota(n.id)}
+                    />
+
+                  </td>
+
+                  <td>{n.numeroNF}</td>
+
+                  <td>{n.empresa}</td>
+
+                  <td>
+                    R$ {formatarReal(n.valor)}
+                  </td>
+
+                  <td>
+
+                    <button
+                      onClick={() => excluir(n.id)}
+                      className="text-red-400"
+                    >
+                      excluir
+                    </button>
+
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+        </div>
 
         <button
           onClick={() => setModal(true)}

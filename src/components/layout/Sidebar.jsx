@@ -42,6 +42,10 @@ export default function Sidebar() {
           👤 Cadastro
         </Link>
 
+        <Link to="/arquivados" className={linkClass("/arquivados")}>
+          📁 Arquivados
+        </Link>
+
 
       </nav>
     </div>
