@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
@@ -46,10 +46,28 @@ export default function Dashboard() {
   const [baixaValor, setBaixaValor] = useState("");
   const [novoBanco, setNovoBanco] = useState("");
 
+  const inputEmpresaRef = useRef(null);
+
   useEffect(() => {
     carregarBoletos();
     carregarBancos();
   }, []);
+
+  useEffect(() => {
+    focarInputEmpresa();
+  }, []);
+
+  useEffect(() => {
+    focarInputEmpresa();
+  }, [
+    boletos,
+    mesFiltro,
+    anoFiltro,
+    empresaFiltro,
+    modalEditar,
+    modalBoleto,
+    modalBaixa
+  ]);
 
   async function carregarBancos() {
     const dados = await getBancos();
@@ -61,6 +79,11 @@ export default function Dashboard() {
     setBoletos(dados || []);
   }
 
+  function focarInputEmpresa() {
+    setTimeout(() => {
+      inputEmpresaRef.current?.focus();
+    }, 0);
+  }
   const hoje = new Date();
 
   function converterData(vencimento) {
@@ -392,6 +415,7 @@ export default function Dashboard() {
             </select>
 
             <input
+              ref={inputEmpresaRef}
               placeholder="Filtrar empresa"
               value={empresaFiltro}
               onChange={(e) =>
@@ -412,7 +436,7 @@ export default function Dashboard() {
                   <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
                   <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
                   <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF</th>
+                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF / Fatura</th>
                   <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
                   <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
                 </tr>
@@ -425,7 +449,7 @@ export default function Dashboard() {
                   return (
                     <tr key={b.id} className="border-b border-gray-700">
                       <td className="py-3">
-                        <div className="max-w-[200px] overflow-x-auto whitespace-nowrap scrollbar-thin">
+                        <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
                           {b.empresa}
                         </div>
                       </td>
@@ -663,7 +687,7 @@ export default function Dashboard() {
                       boletoVisualizando.linhaDigitavel
                     )
                   }}
-                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-gray-400"
+                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-white"
                 >
                   Copiar
                 </button>
