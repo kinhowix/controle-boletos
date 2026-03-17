@@ -727,7 +727,7 @@ export default function Dashboard() {
             <label className="block text-gray-400 text-sm mb-1">Data de Pagamento</label>
             <input
               type="date"
-              className="bg-gray-700 p-2 rounded w-full mb-4"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
               value={baixaData}
               onChange={(e) => setBaixaData(e.target.value)}
             />
@@ -735,7 +735,7 @@ export default function Dashboard() {
             <label className="block text-gray-400 text-sm mb-1">Valor Pago (R$)</label>
             <input
               placeholder="0,00"
-              className="bg-gray-700 p-2 rounded w-full mb-4"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
               value={baixaValor}
               onChange={(e) => setBaixaValor(aplicarMascaraReal(e.target.value))}
             />
