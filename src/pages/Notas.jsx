@@ -6,7 +6,8 @@ import {
   addNota,
   marcarNotaUsada,
   deleteNota,
-  existeNota
+  existeNota,
+  updateNota
 } from "../services/notasService";
 
 import {
@@ -47,8 +48,19 @@ export default function Notas() {
   const [manualNumero, setManualNumero] = useState("");
   const [manualValor, setManualValor] = useState("");
   const [manualEmpresa, setManualEmpresa] = useState(null);
+  const [manualData, setManualData] = useState("");
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
   const [empresas, setEmpresas] = useState([]);
+
+  // Estados para Filtro e Edição
+  const [filtro, setFiltro] = useState("");
+  const [modalEdit, setModalEdit] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editNumero, setEditNumero] = useState("");
+  const [editValor, setEditValor] = useState("");
+  const [editData, setEditData] = useState("");
+
+  const [bcData, setBcData] = useState("");
 
   useEffect(() => {
     carregar();
@@ -132,6 +144,7 @@ export default function Notas() {
         valor: Number(valor),
         empresa,
         cnpj,
+        data: "", // Deixa vazio para edição posterior, conforme solicitado
         usadaEmBoleto: false
       });
 
@@ -163,6 +176,10 @@ export default function Notas() {
       setBcCnpj(cnpjExtraido);
       setBcNumero(numeroNFExtraido);
 
+      const ano = "20" + val.substring(2, 4);
+      const mes = val.substring(4, 6);
+      setBcData(`${ano}-${mes}-01`);
+
       // Tenta buscar empresa cadastrada
       const emp = await getEmpresaByCNPJ(cnpjExtraido);
       if (emp) {
@@ -187,8 +204,8 @@ export default function Notas() {
   }
 
   async function salvarBarcode() {
-    if (!bcNumero || !bcCnpj || !bcValor || !bcEmpresa) {
-      alert("Preencha todos os campos corretamente (ou escaneie o código novamente e informe valor/empresa).");
+    if (!bcNumero || !bcCnpj || !bcValor || !bcEmpresa || !bcData) {
+      alert("Preencha todos os campos corretamente (incluindo a data).");
       return;
     }
 
@@ -215,6 +232,7 @@ export default function Notas() {
       valor: Number(bcValor),
       empresa: bcEmpresa,
       cnpj: bcCnpj,
+      data: bcData,
       usadaEmBoleto: false
     });
 
@@ -229,6 +247,7 @@ export default function Notas() {
     setBcEmpresa("");
     setBcCidade("");
     setBcUf("");
+    setBcData("");
 
     carregar();
   }
@@ -262,6 +281,7 @@ export default function Notas() {
       valor: valorNumerico,
       empresa: manualEmpresa.razao,
       cnpj: manualEmpresa.cnpj || "",
+      data: manualData,
       usadaEmBoleto: false
     });
 
@@ -271,9 +291,42 @@ export default function Notas() {
     // Limpar estados
     setManualNumero("");
     setManualValor("");
+    setManualData("");
     setManualEmpresa(null);
     setBuscaEmpresa("");
 
+    carregar();
+  }
+
+  // =========================
+  // EDIÇÃO DE NOTAS
+  // =========================
+
+  function abrirEdicao(nota) {
+    setEditId(nota.id);
+    setEditNumero(nota.numeroNF);
+    setEditValor(formatarReal(nota.valor));
+    setEditData(nota.data || "");
+    setModalEdit(true);
+  }
+
+  async function salvarEdicao() {
+    if (!editNumero || !editValor || !editData) {
+      alert("Preencha todos os campos");
+      return;
+    }
+
+    const valorNumerico = parseReal(editValor);
+    const numeroNormalizado = Number(editNumero).toString();
+
+    await updateNota(editId, {
+      numeroNF: numeroNormalizado,
+      valor: valorNumerico,
+      data: editData
+    });
+
+    alert("Nota atualizada com sucesso!");
+    setModalEdit(false);
     carregar();
   }
 
@@ -477,6 +530,19 @@ export default function Notas() {
 
       </div>
 
+      {/* FILTRO */}
+
+      <div className="bg-gray-800 p-4 rounded-xl mb-6">
+        <label className="block text-sm text-gray-400 mb-1">Buscar por Nota ou Empresa</label>
+        <input 
+          type="text"
+          placeholder="Digite o número da nota ou o nome da empresa..."
+          className="w-full bg-gray-700 p-2 rounded text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+        />
+      </div>
+
       {/* LISTA */}
 
       <div className="bg-gray-800 p-6 rounded-2xl">
@@ -490,6 +556,7 @@ export default function Notas() {
 
                 <th></th>
                 <th>NF</th>
+                <th>Data</th>
                 <th>Empresa</th>
                 <th>Valor</th>
                 <th>Ações</th>
@@ -500,7 +567,10 @@ export default function Notas() {
 
             <tbody>
 
-              {notas.map((n) => (
+              {notas.filter(n => 
+                n.numeroNF.toLowerCase().includes(filtro.toLowerCase()) || 
+                n.empresa.toLowerCase().includes(filtro.toLowerCase())
+              ).map((n) => (
 
                 <tr
                   key={n.id}
@@ -519,6 +589,10 @@ export default function Notas() {
 
                   <td>{n.numeroNF}</td>
 
+                  <td>
+                    {n.data ? new Date(n.data + "T12:00:00").toLocaleDateString('pt-BR') : "-"}
+                  </td>
+
                   <td>{n.empresa}</td>
 
                   <td>
@@ -528,8 +602,14 @@ export default function Notas() {
                   <td>
 
                     <button
+                      onClick={() => abrirEdicao(n)}
+                      className="text-blue-400 mr-4 hover:underline"
+                    >
+                      editar
+                    </button>
+                    <button
                       onClick={() => excluir(n.id)}
-                      className="text-red-400"
+                      className="text-red-400 hover:underline"
                     >
                       excluir
                     </button>
@@ -684,10 +764,18 @@ export default function Notas() {
             <input
               type="number"
               step="0.01"
-              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={bcValor}
               onChange={(e) => setBcValor(e.target.value)}
               placeholder="0.00"
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Data da Nota</label>
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={bcData}
+              onChange={(e) => setBcData(e.target.value)}
             />
 
             <div className="flex justify-end gap-3 mt-4">
@@ -765,10 +853,18 @@ export default function Notas() {
 
             <label className="block text-gray-400 text-sm mb-1">Valor da Nota (R$)</label>
             <input
-              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
               value={manualValor}
               onChange={(e) => setManualValor(aplicarMascaraReal(e.target.value))}
               placeholder="0,00"
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Data da Nota</label>
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={manualData}
+              onChange={(e) => setManualData(e.target.value)}
             />
 
             <div className="flex justify-end gap-3 mt-4">
@@ -777,6 +873,7 @@ export default function Notas() {
                   setModalManual(false);
                   setManualNumero("");
                   setManualValor("");
+                  setManualData("");
                   setManualEmpresa(null);
                   setBuscaEmpresa("");
                 }}
@@ -789,6 +886,53 @@ export default function Notas() {
                 className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
               >
                 Salvar Nota
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIÇÃO */}
+
+      {modalEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96 font-sans">
+            <h2 className="text-xl mb-4 font-bold text-blue-400">Editar Nota</h2>
+
+            <label className="block text-gray-400 text-sm mb-1">Número da Nota</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+              value={editNumero}
+              onChange={(e) => setEditNumero(e.target.value)}
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Valor da Nota (R$)</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+              value={editValor}
+              onChange={(e) => setEditValor(aplicarMascaraReal(e.target.value))}
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Data da Nota</label>
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+              value={editData}
+              onChange={(e) => setEditData(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setModalEdit(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold text-white transition-colors"
+              >
+                Salvar Alterações
               </button>
             </div>
           </div>
