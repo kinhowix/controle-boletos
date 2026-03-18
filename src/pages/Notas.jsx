@@ -78,58 +78,72 @@ export default function Notas() {
     const file = e.target.files[0];
     if (!file) return;
 
-    const texto = await file.text();
+    try {
+      const texto = await file.text();
 
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(texto, "text/xml");
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(texto, "text/xml");
 
-    const numero =
-      xml.getElementsByTagName("nNF")[0]?.textContent || "";
+      const numeroRaw =
+        xml.getElementsByTagName("nNF")[0]?.textContent || "";
+      // Normalização para remover zeros à esquerda, garantindo consistência com código de barras
+      const numero = numeroRaw ? Number(numeroRaw).toString() : "";
 
-    const valor =
-      xml.getElementsByTagName("vNF")[0]?.textContent || 0;
+      const valor =
+        xml.getElementsByTagName("vNF")[0]?.textContent || 0;
 
-    const empresa =
-      xml.getElementsByTagName("xNome")[0]?.textContent || "";
+      const empresa =
+        xml.getElementsByTagName("xNome")[0]?.textContent || "";
 
-    const cnpj =
-      xml.getElementsByTagName("CNPJ")[0]?.textContent || "";
+      const cnpj =
+        xml.getElementsByTagName("CNPJ")[0]?.textContent || "";
 
-    const cidade =
-      xml.getElementsByTagName("xMun")[0]?.textContent || "";
+      const cidade =
+        xml.getElementsByTagName("xMun")[0]?.textContent || "";
 
-    const uf =
-      xml.getElementsByTagName("UF")[0]?.textContent || "";
+      const uf =
+        xml.getElementsByTagName("UF")[0]?.textContent || "";
 
-    const duplicado = await existeNota(numero, cnpj);
+      if (!numero || !cnpj) {
+        throw new Error("Não foi possível extrair os dados da nota. Verifique se o arquivo XML é válido.");
+      }
 
-    if (duplicado) {
-      alert("Nota já cadastrada");
-      return;
-    }
+      const duplicado = await existeNota(numero, cnpj);
 
-    let emp = await getEmpresaByCNPJ(cnpj);
+      if (duplicado) {
+        alert("Nota já recebida");
+        e.target.value = "";
+        return;
+      }
 
-    if (!emp) {
+      let emp = await getEmpresaByCNPJ(cnpj);
 
-      await addEmpresa({
-        razao: empresa,
+      if (!emp) {
+        await addEmpresa({
+          razao: empresa,
+          cnpj,
+          cidade,
+          uf
+        });
+      }
+
+      await addNota({
+        numeroNF: numero,
+        valor: Number(valor),
+        empresa,
         cnpj,
-        cidade,
-        uf
+        usadaEmBoleto: false
       });
 
+      alert("Nota aceita com sucesso!");
+      e.target.value = "";
+      carregar();
+
+    } catch (erro) {
+      console.error("Erro ao importar XML:", erro);
+      alert(erro.message || "Erro ao processar o arquivo XML.");
+      e.target.value = "";
     }
-
-    await addNota({
-      numeroNF: numero,
-      valor: Number(valor),
-      empresa,
-      cnpj,
-      usadaEmBoleto: false
-    });
-
-    carregar();
 
   }
 
@@ -181,7 +195,7 @@ export default function Notas() {
     const duplicado = await existeNota(bcNumero, bcCnpj);
 
     if (duplicado) {
-      alert("Nota já cadastrada");
+      alert("Nota já recebida");
       return;
     }
 
@@ -204,7 +218,7 @@ export default function Notas() {
       usadaEmBoleto: false
     });
 
-    alert("Nota adicionada com sucesso!");
+    alert("Nota aceita com sucesso!");
     setModalBarcode(false);
 
     // Limpar estados
@@ -235,22 +249,23 @@ export default function Notas() {
       return;
     }
 
-    const duplicado = await existeNota(manualNumero, manualEmpresa.cnpj);
+    const numeroNormalizado = Number(manualNumero).toString();
+    const duplicado = await existeNota(numeroNormalizado, manualEmpresa.cnpj);
 
     if (duplicado) {
-      alert("Nota já cadastrada");
+      alert("Nota já recebida");
       return;
     }
 
     await addNota({
-      numeroNF: manualNumero,
+      numeroNF: numeroNormalizado,
       valor: valorNumerico,
       empresa: manualEmpresa.razao,
       cnpj: manualEmpresa.cnpj || "",
       usadaEmBoleto: false
     });
 
-    alert("Nota adicionada com sucesso!");
+    alert("Nota aceita com sucesso!");
     setModalManual(false);
 
     // Limpar estados
