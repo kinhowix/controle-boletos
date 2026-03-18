@@ -394,7 +394,7 @@ export default function Notas() {
       );
 
       const arrayNumerosNF = notasSelecionadas.map((n) => n.numeroNF).join(", ");
-      const descricao = "Fatura NF " + arrayNumerosNF;
+      const descricao = ""; // Redundante com o campo NF, removido por solicitação do usuário
 
       const valorParcela = total / parcelas;
 

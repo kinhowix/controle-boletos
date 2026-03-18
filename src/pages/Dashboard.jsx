@@ -453,7 +453,7 @@ export default function Dashboard() {
                     <tr key={b.id} className="border-b border-gray-700">
                       <td className="py-3">
                         <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                          {b.empresa}
+                          {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
                         </div>
                       </td>
                       <td className="py-3">R$ {formatarReal(b.valor)}</td>
@@ -518,7 +518,7 @@ export default function Dashboard() {
                       <tr key={b.id} className="border-b border-gray-700">
                         <td className="py-3">
                           <div className="max-w-[200px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                            {b.empresa}
+                            {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
                           </div>
                         </td>
                         <td className="py-3">R$ {formatarReal(b.valorPago || b.valor)}</td>
