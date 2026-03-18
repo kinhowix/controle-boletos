@@ -23,6 +23,7 @@ export default function Empresas() {
   const [editFantasia, setEditFantasia] = useState("");
   const [editCidade, setEditCidade] = useState("");
   const [editUf, setEditUf] = useState("");
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     carregar();
@@ -80,6 +81,16 @@ export default function Empresas() {
 
     const cnpjLimpo = limparCNPJ(cnpj);
 
+    // 🔒 VERIFICA SE CNPJ JÁ EXISTE
+    const jaExiste = empresas.some(
+      (e) => limparCNPJ(e.cnpj) === cnpjLimpo
+    );
+
+    if (jaExiste) {
+      alert("Este CNPJ já está cadastrado.");
+      return;
+    }
+
     if (cnpjLimpo.length < 14) {
       alert("CNPJ inválido");
       return;
@@ -102,6 +113,7 @@ export default function Empresas() {
       alert("Erro ao buscar CNPJ");
     }
   }
+
 
   // =========================
   // SALVAR
@@ -184,10 +196,26 @@ export default function Empresas() {
     }
   }
 
+  // =========================
+  // FILTRO DE BUSCA
+  // =========================
+
+  const empresasFiltradas = empresas.filter((e) => {
+
+    const termo = busca.toLowerCase();
+
+    return (
+      (e.razao && e.razao.toLowerCase().includes(termo)) ||
+      (e.fantasia && e.fantasia.toLowerCase().includes(termo)) ||
+      (e.cnpj && limparCNPJ(e.cnpj).includes(limparCNPJ(termo)))
+    );
+
+  });
+
   return (
     <MainLayout>
 
-      <h1 className="text-2xl font-semibold mb-6">
+      <h1 className="text-2xl font-semibold mb-2">
         Empresas
       </h1>
 
@@ -253,44 +281,52 @@ export default function Empresas() {
       {/* LISTA */}
       <div className="bg-gray-800 p-6 rounded-2xl shadow-lg">
 
-        <table className="w-full text-sm">
+        <div className="max-h-[240px] overflow-y-auto pr-2">
+          <input
+            placeholder="Buscar por empresa ou CNPJ..."
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white mb-4 w-full"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+          <table className="w-full text-sm">
 
-          <thead>
-            <tr className="text-left border-b border-gray-600">
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
-              <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {empresas.map((e) => (
-              <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
-                <td className="py-3">{e.cnpj}</td>
-                <td className="py-3">{e.razao}</td>
-                <td className="py-3">{e.cidade}</td>
-                <td className="py-3">{e.uf}</td>
-                <td className="py-3 flex gap-2 whitespace-nowrap">
-                  <button
-                    onClick={() => abrirEdicao(e)}
-                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white text-xs font-medium"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleExcluir(e.id)}
-                    className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
-                  >
-                    Excluir
-                  </button>
-                </td>
+            <thead className="sticky top-0 bg-gray-800 z-10">
+              <tr className="text-left border-b border-gray-600">
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
               </tr>
-            ))}
-          </tbody>
+            </thead>
 
-        </table>
+            <tbody>
+              {empresasFiltradas.map((e) => (
+                <tr key={e.id} className="border-b border-gray-700 hover:bg-gray-700 uppercase">
+                  <td className="py-3">{e.cnpj}</td>
+                  <td className="py-3">{e.razao}</td>
+                  <td className="py-3">{e.cidade}</td>
+                  <td className="py-3">{e.uf}</td>
+                  <td className="py-3 flex gap-2 whitespace-nowrap">
+                    <button
+                      onClick={() => abrirEdicao(e)}
+                      className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(e.id)}
+                      className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+
+          </table>
+        </div>
 
       </div>
 

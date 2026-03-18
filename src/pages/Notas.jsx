@@ -11,12 +11,13 @@ import {
 
 import {
   getEmpresaByCNPJ,
-  addEmpresa
+  addEmpresa,
+  getEmpresas
 } from "../services/empresasService";
 
 import { addBoleto } from "../services/boletosService";
 
-import { formatarReal } from "../utils/formatCurrency";
+import { formatarReal, aplicarMascaraReal, parseReal } from "../utils/formatCurrency";
 
 export default function Notas() {
 
@@ -28,8 +29,26 @@ export default function Notas() {
   const [vencimento, setVencimento] = useState("");
   const [parcelas, setParcelas] = useState(1);
 
-  const [linhaDigitavel, setLinhaDigitavel] = useState("");
-  const [pdfBoleto, setPdfBoleto] = useState(null);
+  const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
+  const [pdfsBoletos, setPdfsBoletos] = useState({});
+
+  // Estados para Código de Barras
+  const [modalBarcode, setModalBarcode] = useState(false);
+  const [barcode, setBarcode] = useState("");
+  const [bcNumero, setBcNumero] = useState("");
+  const [bcCnpj, setBcCnpj] = useState("");
+  const [bcValor, setBcValor] = useState("");
+  const [bcEmpresa, setBcEmpresa] = useState("");
+  const [bcCidade, setBcCidade] = useState("");
+  const [bcUf, setBcUf] = useState("");
+
+  // Estados para Inserção Manual
+  const [modalManual, setModalManual] = useState(false);
+  const [manualNumero, setManualNumero] = useState("");
+  const [manualValor, setManualValor] = useState("");
+  const [manualEmpresa, setManualEmpresa] = useState(null);
+  const [buscaEmpresa, setBuscaEmpresa] = useState("");
+  const [empresas, setEmpresas] = useState([]);
 
   useEffect(() => {
     carregar();
@@ -44,6 +63,9 @@ export default function Notas() {
     );
 
     setNotas(disponiveis);
+
+    const emps = await getEmpresas();
+    setEmpresas(emps || []);
 
   }
 
@@ -112,6 +134,135 @@ export default function Notas() {
   }
 
   // =========================
+  // IMPORTAR CÓDIGO DE BARRAS (CHAVE DE ACESSO)
+  // =========================
+
+  async function handleBarcodeChange(e) {
+    const val = e.target.value;
+    setBarcode(val);
+
+    // Se tiver 44 dígitos, é a chave de acesso da NF-e
+    if (val.length === 44) {
+      const cnpjExtraido = val.substring(6, 20);
+      const numeroNFExtraido = Number(val.substring(25, 34)).toString();
+
+      setBcCnpj(cnpjExtraido);
+      setBcNumero(numeroNFExtraido);
+
+      // Tenta buscar empresa cadastrada
+      const emp = await getEmpresaByCNPJ(cnpjExtraido);
+      if (emp) {
+        setBcEmpresa(emp.razao || emp.empresa || "");
+        setBcCidade(emp.cidade || "");
+        setBcUf(emp.uf || "");
+      } else {
+        setBcEmpresa("");
+        setBcCidade("");
+        setBcUf("");
+      }
+    }
+  }
+
+  function handleBarcodeKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+    if (e.ctrlKey && e.key.toLowerCase() === "j") {
+      e.preventDefault();
+    }
+  }
+
+  async function salvarBarcode() {
+    if (!bcNumero || !bcCnpj || !bcValor || !bcEmpresa) {
+      alert("Preencha todos os campos corretamente (ou escaneie o código novamente e informe valor/empresa).");
+      return;
+    }
+
+    const duplicado = await existeNota(bcNumero, bcCnpj);
+
+    if (duplicado) {
+      alert("Nota já cadastrada");
+      return;
+    }
+
+    let emp = await getEmpresaByCNPJ(bcCnpj);
+
+    if (!emp) {
+      await addEmpresa({
+        razao: bcEmpresa,
+        cnpj: bcCnpj,
+        cidade: bcCidade,
+        uf: bcUf
+      });
+    }
+
+    await addNota({
+      numeroNF: bcNumero,
+      valor: Number(bcValor),
+      empresa: bcEmpresa,
+      cnpj: bcCnpj,
+      usadaEmBoleto: false
+    });
+
+    alert("Nota adicionada com sucesso!");
+    setModalBarcode(false);
+
+    // Limpar estados
+    setBarcode("");
+    setBcNumero("");
+    setBcCnpj("");
+    setBcValor("");
+    setBcEmpresa("");
+    setBcCidade("");
+    setBcUf("");
+
+    carregar();
+  }
+
+  // =========================
+  // SALVAR MANUAL
+  // =========================
+
+  async function salvarManual() {
+    if (!manualNumero || !manualValor || !manualEmpresa) {
+      alert("Preencha todos os campos e selecione uma empresa.");
+      return;
+    }
+
+    const valorNumerico = parseReal(manualValor);
+    if (valorNumerico <= 0) {
+      alert("Informe um valor válido");
+      return;
+    }
+
+    const duplicado = await existeNota(manualNumero, manualEmpresa.cnpj);
+
+    if (duplicado) {
+      alert("Nota já cadastrada");
+      return;
+    }
+
+    await addNota({
+      numeroNF: manualNumero,
+      valor: valorNumerico,
+      empresa: manualEmpresa.razao,
+      cnpj: manualEmpresa.cnpj || "",
+      usadaEmBoleto: false
+    });
+
+    alert("Nota adicionada com sucesso!");
+    setModalManual(false);
+
+    // Limpar estados
+    setManualNumero("");
+    setManualValor("");
+    setManualEmpresa(null);
+    setBuscaEmpresa("");
+
+    carregar();
+  }
+
+  // =========================
   // SELECIONAR NOTAS
   // =========================
 
@@ -174,35 +325,37 @@ export default function Notas() {
         0
       );
 
-      const descricao =
-        "Fatura NF " +
-        notasSelecionadas.map((n) => n.numeroNF).join(",");
+      const arrayNumerosNF = notasSelecionadas.map((n) => n.numeroNF).join(", ");
+      const descricao = "Fatura NF " + arrayNumerosNF;
 
       const valorParcela = total / parcelas;
 
       let primeiroBoletoId = null;
-      let pdfUrl = "";
-
-      // Conversão do PDF para um texto seguro (Base64) //
-      if (pdfBoleto) {
-        if (pdfBoleto.size > 800 * 1024) {
-          alert("O arquivo PDF é muito grande. O limite máximo seguro é 800 KB.");
-          return;
-        }
-        try {
-          pdfUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(pdfBoleto);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = (e) => reject(e);
-          });
-        } catch (error) {
-          console.error("Erro na leitura do PDF", error);
-          alert("Não foi possível ler o PDF, ele será ignorado.");
-        }
-      }
 
       for (let i = 1; i <= parcelas; i++) {
+        const index = i - 1;
+
+        let pdfUrl = "";
+        const pdfFile = pdfsBoletos[index];
+
+        // Conversão do PDF para um texto seguro (Base64) //
+        if (pdfFile) {
+          if (pdfFile.size > 800 * 1024) {
+            alert(`O arquivo PDF da parcela ${i} é muito grande. O limite máximo seguro é 800 KB.`);
+            return;
+          }
+          try {
+            pdfUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(pdfFile);
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = (e) => reject(e);
+            });
+          } catch (error) {
+            console.error("Erro na leitura do PDF", error);
+            alert(`Não foi possível ler o PDF da parcela ${i}, ele será ignorado.`);
+          }
+        }
 
         const dataParcela = new Date(
           vencimento + "T12:00:00"
@@ -217,11 +370,12 @@ export default function Notas() {
           valor: valorParcela,
           descricao,
           vencimento: dataParcela,
-          linhaDigitavel: linhaDigitavel || "",
+          linhaDigitavel: linhasDigitaveis[index] || "",
           pdf: pdfUrl,
           parcela: i,
           totalParcelas: parcelas,
-          pago: false
+          pago: false,
+          numeroNF: arrayNumerosNF
         });
 
         if (!primeiroBoletoId) {
@@ -268,84 +422,113 @@ export default function Notas() {
         Notas Fiscais
       </h1>
 
-      {/* IMPORTAR XML */}
+      {/* IMPORTAR XML E CÓDIGO DE BARRAS */}
 
-      <div className="bg-gray-800 p-4 rounded-xl mb-6">
+      <div className="bg-gray-800 p-4 rounded-xl mb-6 flex items-center gap-4">
 
-        <input
-          type="file"
-          accept=".xml"
-          onChange={importarXML}
-          className="bg-gray-700 p-2 rounded text-white"
-        />
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Importar XML</label>
+          <input
+            type="file"
+            accept=".xml"
+            onChange={importarXML}
+            className="bg-gray-700 p-2 rounded text-white"
+          />
+        </div>
+
+        <div className="text-gray-400">ou</div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Leitor de Código de Barras (NF-e)</label>
+          <button
+            onClick={() => setModalBarcode(true)}
+            className="bg-blue-600 px-4 py-2 rounded text-white font-medium"
+          >
+            Escanear Código de Barras
+          </button>
+        </div>
+
+        <div className="text-gray-400">ou</div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Lançamento Manual</label>
+          <button
+            onClick={() => setModalManual(true)}
+            className="bg-purple-600 px-4 py-2 rounded text-white font-medium"
+          >
+            Adicionar Manualmente
+          </button>
+        </div>
 
       </div>
 
       {/* LISTA */}
 
       <div className="bg-gray-800 p-6 rounded-2xl">
+        <div className="max-h-[240px] overflow-y-auto pr-2">
 
-        <table className="w-full">
+          <table className="w-full">
 
-          <thead>
+            <thead>
 
-            <tr className="border-b border-gray-600 text-left text-gray-400">
+              <tr className="border-b border-gray-600 text-left text-gray-400">
 
-              <th></th>
-              <th>NF</th>
-              <th>Empresa</th>
-              <th>Valor</th>
-              <th>Ações</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {notas.map((n) => (
-
-              <tr
-                key={n.id}
-                className="border-b border-gray-700"
-              >
-
-                <td>
-
-                  <input
-                    type="checkbox"
-                    checked={selecionadas.includes(n.id)}
-                    onChange={() => toggleNota(n.id)}
-                  />
-
-                </td>
-
-                <td>{n.numeroNF}</td>
-
-                <td>{n.empresa}</td>
-
-                <td>
-                  R$ {formatarReal(n.valor)}
-                </td>
-
-                <td>
-
-                  <button
-                    onClick={() => excluir(n.id)}
-                    className="text-red-400"
-                  >
-                    excluir
-                  </button>
-
-                </td>
+                <th></th>
+                <th>NF</th>
+                <th>Empresa</th>
+                <th>Valor</th>
+                <th>Ações</th>
 
               </tr>
 
-            ))}
+            </thead>
 
-          </tbody>
+            <tbody>
 
-        </table>
+              {notas.map((n) => (
+
+                <tr
+                  key={n.id}
+                  className="border-b border-gray-700"
+                >
+
+                  <td>
+
+                    <input
+                      type="checkbox"
+                      checked={selecionadas.includes(n.id)}
+                      onChange={() => toggleNota(n.id)}
+                    />
+
+                  </td>
+
+                  <td>{n.numeroNF}</td>
+
+                  <td>{n.empresa}</td>
+
+                  <td>
+                    R$ {formatarReal(n.valor)}
+                  </td>
+
+                  <td>
+
+                    <button
+                      onClick={() => excluir(n.id)}
+                      className="text-red-400"
+                    >
+                      excluir
+                    </button>
+
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+        </div>
 
         <button
           onClick={() => setModal(true)}
@@ -360,9 +543,9 @@ export default function Notas() {
 
       {modal && (
 
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
 
-          <div className="bg-gray-800 p-6 rounded-xl w-96">
+          <div className="bg-gray-800 p-6 rounded-xl w-96 max-h-[90vh] overflow-y-auto">
 
             <h2 className="text-xl mb-4">
               Gerar boletos
@@ -387,23 +570,32 @@ export default function Notas() {
               className="bg-gray-700 p-2 rounded w-full mb-3"
             />
 
-            <input
-              placeholder="Linha digitável (opcional)"
-              value={linhaDigitavel}
-              onChange={(e) =>
-                setLinhaDigitavel(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded w-full mb-3"
-            />
-
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) =>
-                setPdfBoleto(e.target.files[0])
-              }
-              className="mb-4"
-            />
+            <div className="mb-4 space-y-4 max-h-60 overflow-y-auto pr-2">
+              {Array.from({ length: parcelas || 1 }).map((_, i) => (
+                <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
+                  <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
+                  <input
+                    placeholder="Linha digitável (opcional)"
+                    value={linhasDigitaveis[i] || ""}
+                    onChange={(e) =>
+                      setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                    }
+                    className="bg-gray-800 p-2 rounded w-full mb-3 border border-gray-600"
+                  />
+                  <label className="block mb-2 text-sm text-gray-400">
+                    Anexar PDF do Boleto (Opcional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) =>
+                      setPdfsBoletos({ ...pdfsBoletos, [i]: e.target.files[0] })
+                    }
+                    className="w-full text-sm text-gray-300"
+                  />
+                </div>
+              ))}
+            </div>
 
             <div className="flex gap-3">
 
@@ -427,6 +619,165 @@ export default function Notas() {
 
         </div>
 
+      )}
+
+      {/* MODAL CÓDIGO DE BARRAS */}
+
+      {modalBarcode && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+            <h2 className="text-xl mb-4 font-bold text-blue-400">Adicionar via Código de Barras</h2>
+
+            <label className="block text-gray-400 text-sm mb-1">Passe o leitor aqui (Chave 44 dígitos)</label>
+            <input
+              autoFocus
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={barcode}
+              onChange={handleBarcodeChange}
+              onKeyDown={handleBarcodeKeyDown}
+              placeholder="Escaneie o código de barras..."
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Número NF</label>
+                <input
+                  className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+                  value={bcNumero}
+                  onChange={(e) => setBcNumero(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">CNPJ</label>
+                <input
+                  className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+                  value={bcCnpj}
+                  onChange={(e) => setBcCnpj(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <label className="block text-gray-400 text-sm mb-1">Empresa</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={bcEmpresa}
+              onChange={(e) => setBcEmpresa(e.target.value)}
+              placeholder="Nome da empresa..."
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Valor da NF (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={bcValor}
+              onChange={(e) => setBcValor(e.target.value)}
+              placeholder="0.00"
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setModalBarcode(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarBarcode}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Salvar Nota
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MANUAL */}
+
+      {modalManual && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96">
+            <h2 className="text-xl mb-4 font-bold text-purple-400">Adicionar Nota Manual</h2>
+
+            <label className="block text-gray-400 text-sm mb-1">Número da Nota</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              value={manualNumero}
+              onChange={(e) => setManualNumero(e.target.value)}
+              placeholder="Ex: 12345"
+            />
+
+            <label className="block text-gray-400 text-sm mb-1">Pesquisar Empresa</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-2 text-white"
+              value={buscaEmpresa}
+              onChange={(e) => setBuscaEmpresa(e.target.value)}
+              placeholder="Digite o nome da empresa..."
+            />
+            
+            {buscaEmpresa && !manualEmpresa && (
+              <div className="bg-gray-700 rounded mb-3 max-h-40 overflow-y-auto border border-gray-600">
+                {empresas.filter(e => e.razao?.toLowerCase().includes(buscaEmpresa.toLowerCase())).map(e => (
+                  <div 
+                    key={e.id}
+                    className="p-2 hover:bg-gray-600 cursor-pointer text-sm border-b border-gray-700 last:border-0"
+                    onClick={() => {
+                      setManualEmpresa(e);
+                      setBuscaEmpresa(e.razao);
+                    }}
+                  >
+                    {e.razao} {e.cnpj ? `(${e.cnpj})` : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {manualEmpresa && (
+              <div className="bg-gray-900/50 p-2 rounded mb-3 text-sm text-green-400 border border-green-900/50 flex justify-between items-center">
+                <span>Empresa: <strong>{manualEmpresa.razao}</strong></span>
+                <button 
+                  className="text-xs text-gray-400 hover:text-white"
+                  onClick={() => {
+                    setManualEmpresa(null);
+                    setBuscaEmpresa("");
+                  }}
+                >
+                  alterar
+                </button>
+              </div>
+            )}
+
+            <label className="block text-gray-400 text-sm mb-1">Valor da Nota (R$)</label>
+            <input
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
+              value={manualValor}
+              onChange={(e) => setManualValor(aplicarMascaraReal(e.target.value))}
+              placeholder="0,00"
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setModalManual(false);
+                  setManualNumero("");
+                  setManualValor("");
+                  setManualEmpresa(null);
+                  setBuscaEmpresa("");
+                }}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarManual}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
+              >
+                Salvar Nota
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </MainLayout>

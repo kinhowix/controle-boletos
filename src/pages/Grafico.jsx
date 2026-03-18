@@ -8,11 +8,13 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  LabelList
 } from "recharts";
 import { formatarReal } from "../utils/formatCurrency";
 
 export default function Grafico() {
   const [boletos, setBoletos] = useState([]);
+  const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
 
   useEffect(() => {
     async function carregar() {
@@ -50,7 +52,7 @@ export default function Grafico() {
   for (let i = 1; i <= 12; i++) {
     const total = boletos.reduce((acc, b) => {
       const data = converterData(b.vencimento);
-      if (data && data.getMonth() + 1 === i) {
+      if (data && data.getFullYear() === Number(anoFiltro) && data.getMonth() + 1 === i) {
         return acc + Number(b.valor || 0);
       }
       return acc;
@@ -78,24 +80,66 @@ export default function Grafico() {
 
   return (
     <MainLayout>
-      <h1 className="text-3xl font-bold mb-8 text-blue-400">Desempenho Anual</h1>
+      <h1 className="text-3xl font-bold mb-8 text-blue-400">Somatório Anual</h1>
 
       <div className="bg-gray-800 p-8 rounded-2xl shadow-xl">
-        <h2 className="text-lg text-gray-400 mb-6 font-semibold">
-          Total de Boletos por Mês
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg text-gray-400 font-semibold">
+            Total de Boletos por Mês
+          </h2>
+          <select
+            value={anoFiltro}
+            onChange={(e) => setAnoFiltro(e.target.value)}
+            className="bg-gray-700 p-2 rounded text-white border border-gray-600 outline-none"
+          >
+            {Array.from({ length: 15 }).map((_, i) => {
+              const year = new Date().getFullYear() - 5 + i;
+              return (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
+        </div>
 
         <div className="w-full h-96">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dadosGrafico}>
-              <XAxis dataKey="mes" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
-              <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255, 255, 255, 0.05)'}} />
+              <XAxis dataKey="mes" stroke="#fff" />
+              <YAxis stroke="#fff" />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
               <Bar
                 dataKey="total"
-                fill="#3B82F6"
+                fill="#126DEB"
                 radius={[4, 4, 0, 0]}
-              />
+              >
+                <LabelList
+                  dataKey="total"
+                  content={(props) => {
+                    const { x, y, width, value } = props;
+
+                    if (!value) return null;
+
+                    const texto = `R$ ${formatarReal(value)}`;
+
+                    // Se valor for pequeno, joga pra cima
+                    const isPequeno = value < 1000;
+
+                    return (
+                      <text
+                        x={x + width / 2}
+                        y={isPequeno ? y - 5 : y + 15}
+                        fill="#FFFFFF"
+                        textAnchor="middle"
+                        fontSize={12}
+                      >
+                        {texto}
+                      </text>
+                    );
+                  }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

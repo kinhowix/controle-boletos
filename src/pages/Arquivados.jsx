@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
@@ -12,11 +12,11 @@ import {
   updateBoleto
 } from "../services/boletosService";
 
-import { getBancos, addBanco } from "../services/bancosService";
+import { getBancos } from "../services/bancosService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
 
-export default function Dashboard() {
+export default function Arquivados() {
 
   const navigate = useNavigate();
 
@@ -38,107 +38,22 @@ export default function Dashboard() {
   const [modalBoleto, setModalBoleto] = useState(false);
   const [boletoVisualizando, setBoletoVisualizando] = useState(null);
 
-  const [bancos, setBancos] = useState([]);
-  const [modalBaixa, setModalBaixa] = useState(false);
-  const [boletoBaixa, setBoletoBaixa] = useState(null);
-  const [baixaData, setBaixaData] = useState(new Date().toISOString().substring(0, 10));
-  const [baixaBanco, setBaixaBanco] = useState("");
-  const [baixaValor, setBaixaValor] = useState("");
-  const [novoBanco, setNovoBanco] = useState("");
-
-  const inputEmpresaRef = useRef(null);
-
   useEffect(() => {
     carregarBoletos();
-    carregarBancos();
   }, []);
-
-  useEffect(() => {
-    focarInputEmpresa();
-  }, []);
-
-  useEffect(() => {
-    focarInputEmpresa();
-  }, [
-    boletos,
-    mesFiltro,
-    anoFiltro,
-    empresaFiltro,
-    modalEditar,
-    modalBoleto,
-    modalBaixa
-  ]);
-
-  async function carregarBancos() {
-    const dados = await getBancos();
-    setBancos(dados || []);
-  }
 
   async function carregarBoletos() {
     const dados = await getBoletos();
     setBoletos(dados || []);
   }
 
-  function focarInputEmpresa() {
-    setTimeout(() => {
-      inputEmpresaRef.current?.focus();
-    }, 0);
-  }
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
   function converterData(vencimento) {
-
     if (!vencimento) return null;
-
     if (typeof vencimento.toDate === "function") {
       return vencimento.toDate();
     }
-
-    const data = new Date(vencimento);
-    data.setHours(0, 0, 0, 0);
-    return data;
-
+    return new Date(vencimento);
   }
-
-  const totalPago = boletos
-    .filter(b => {
-      if (!b.pago) return false;
-      const data = converterData(b.vencimento);
-      if (!data) return false;
-      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
-      if (mesFiltro === "") return true;
-      return data.getMonth() + 1 === Number(mesFiltro);
-    })
-    .reduce((acc, b) => acc + Number(b.valorPago || b.valor || 0), 0);
-
-  const totalPendente = boletos
-    .filter(b => {
-
-      if (b.pago) return false;
-
-      const data = converterData(b.vencimento);
-      if (!data) return false;
-
-      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
-
-      if (mesFiltro === "") return true;
-
-      return data.getMonth() + 1 === Number(mesFiltro);
-
-    })
-    .reduce((acc, b) => acc + Number(b.valor || 0), 0);
-
-  const totalVencido = boletos
-    .filter(b => {
-      if (b.pago) return false;
-      const data = converterData(b.vencimento);
-      if (!data || data >= hoje) return false;
-      if (anoFiltro !== "" && data.getFullYear() !== Number(anoFiltro)) return false;
-      if (mesFiltro === "") return true;
-      return data.getMonth() + 1 === Number(mesFiltro);
-    })
-    .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
   async function sair() {
     await signOut(auth);
@@ -150,93 +65,27 @@ export default function Dashboard() {
   // ================================
 
   const boletosFiltrados = boletos.filter((b) => {
-
     const data = converterData(b.vencimento);
-
     const filtroAno =
       anoFiltro === "" ||
       (data && data.getFullYear() === Number(anoFiltro));
-
     const filtroMes =
       mesFiltro === "" ||
       (data && data.getMonth() + 1 === Number(mesFiltro));
-
     const filtroEmpresa =
       empresaFiltro === "" ||
       b.empresa?.toLowerCase().includes(
         empresaFiltro.toLowerCase()
       );
-
     return filtroAno && filtroMes && filtroEmpresa;
-
   });
 
   // ================================
-  // MARCAR PAGO (BAIXA)
+  // ARQUIVAMENTO
   // ================================
 
-  async function iniciarBaixa(boleto) {
-    if (boleto.pago) {
-      // Se já está pago e clica, apenas reverte o status
-      await updateBoleto(boleto.id, {
-        pago: false,
-        dataPagamento: null,
-        banco: null,
-        valorPago: null,
-      });
-      carregarBoletos();
-      return;
-    }
-
-    setBoletoBaixa(boleto);
-    setBaixaData(new Date().toISOString().substring(0, 10));
-    setBaixaBanco("");
-    setBaixaValor(formatarReal(boleto.valor));
-    setNovoBanco("");
-    setModalBaixa(true);
-  }
-
-  async function confirmarBaixa() {
-    let bancoSelecionado = baixaBanco;
-
-    if (bancoSelecionado === "novo") {
-      if (!novoBanco) {
-        alert("Informe o nome do novo banco.");
-        return;
-      }
-      bancoSelecionado = novoBanco;
-      await addBanco({ nome: novoBanco });
-      carregarBancos();
-    } else if (!bancoSelecionado) {
-      alert("Selecione um banco.");
-      return;
-    }
-
-    await updateBoleto(boletoBaixa.id, {
-      pago: true,
-      dataPagamento: baixaData,
-      banco: bancoSelecionado,
-      valorPago: parseReal(baixaValor),
-    });
-
-    setModalBaixa(false);
-    carregarBoletos();
-  }
-
-  function cancelarBaixa() {
-    setModalBaixa(false);
-    setBoletoBaixa(null);
-  }
-
-  // ================================
-  // ARQUIVAR
-  // ================================
-
-  async function arquivar(boleto) {
-    const confirma = window.confirm("Arquivar este boleto? Ele sairá desta lista mas continuará somando no total.");
-    if (!confirma) return;
-
-    await updateBoleto(boleto.id, { arquivado: true });
+  async function desarquivar(boleto) {
+    await updateBoleto(boleto.id, { arquivado: false });
     carregarBoletos();
   }
 
@@ -245,17 +94,12 @@ export default function Dashboard() {
   // ================================
 
   async function excluir(boleto) {
-
     const confirma = window.confirm(
       "Excluir boleto permanentemente?"
     );
-
     if (!confirma) return;
-
     await deleteBoleto(boleto.id);
-
     carregarBoletos();
-
   }
 
   // ================================
@@ -263,7 +107,6 @@ export default function Dashboard() {
   // ================================
 
   function abrirEditar(boleto) {
-
     setBoletoEditando({
       ...boleto,
       valor: formatarReal(boleto.valor),
@@ -271,27 +114,20 @@ export default function Dashboard() {
         ?.toISOString()
         .substring(0, 10)
     });
-
     setModalEditar(true);
-
   }
 
   async function salvarEdicao() {
-
     const dadosAtualizados = {
       ...boletoEditando,
       valor: parseReal(boletoEditando.valor)
     };
-
     await updateBoleto(
       boletoEditando.id,
       dadosAtualizados
     );
-
     setModalEditar(false);
-
     carregarBoletos();
-
   }
 
   // ================================
@@ -299,19 +135,11 @@ export default function Dashboard() {
   // ================================
 
   function abrirBoleto(boleto) {
-
     setBoletoVisualizando(boleto);
-
     setModalBoleto(true);
-
   }
 
-  // ================================
-  // LISTAS SEPARADAS
-  // ================================
-
-  const pendentesEVencidos = boletosFiltrados.filter(b => !b.pago);
-  const pagos = boletosFiltrados.filter(b => b.pago && !b.arquivado);
+  const arquivados = boletosFiltrados.filter(b => b.arquivado);
 
   return (
 
@@ -330,7 +158,7 @@ export default function Dashboard() {
           <div className="flex justify-between mb-6">
 
             <h1 className="text-2xl font-bold">
-              Painel Financeiro
+              Boletos Arquivados
             </h1>
 
             <button
@@ -339,33 +167,6 @@ export default function Dashboard() {
             >
               Sair
             </button>
-
-          </div>
-
-          {/* RESUMO */}
-
-          <div className="grid grid-cols-3 gap-4 mb-6">
-
-            <div className="bg-gray-800 p-4 rounded">
-              Pago
-              <div className="text-green-400 text-xl">
-                R$ {formatarReal(totalPago)}
-              </div>
-            </div>
-
-            <div className="bg-gray-800 p-4 rounded">
-              Pendente no Período
-              <div className="text-yellow-400 text-xl">
-                R$ {formatarReal(totalPendente)}
-              </div>
-            </div>
-
-            <div className="bg-gray-800 p-4 rounded">
-              Vencido
-              <div className="text-red-400 text-xl">
-                R$ {formatarReal(totalVencido)}
-              </div>
-            </div>
 
           </div>
 
@@ -418,7 +219,6 @@ export default function Dashboard() {
             </select>
 
             <input
-              ref={inputEmpresaRef}
               placeholder="Filtrar empresa"
               value={empresaFiltro}
               onChange={(e) =>
@@ -429,76 +229,12 @@ export default function Dashboard() {
 
           </div>
 
-          {/* TABELA PENDENTES */}
-
-          <div className="bg-gray-800 p-6 rounded-xl mb-6">
-            <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-gray-600">
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF / Fatura</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendentesEVencidos.map((b) => {
-                  const data = converterData(b.vencimento);
-                  const isVencido = data && data < hoje;
-
-                  return (
-                    <tr key={b.id} className="border-b border-gray-700">
-                      <td className="py-3">
-                        <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                          {b.empresa}
-                        </div>
-                      </td>
-                      <td className="py-3">R$ {formatarReal(b.valor)}</td>
-                      <td className="py-3">{data ? data.toLocaleDateString() : ""}</td>
-                      <td className="py-3">
-                        <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                          {b.numeroNF || "-"}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {isVencido ? (
-                          <span className="text-red-400 font-bold">Vencido</span>
-                        ) : (
-                          <span className="text-yellow-400">Pendente</span>
-                        )}
-                      </td>
-                      <td className="flex gap-2 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() => iniciarBaixa(b)}
-                          className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
-                          title="Dar baixa"
-                        >
-                          ✔
-                        </button>
-                        <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
-                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {pendentesEVencidos.length === 0 && (
-                  <tr>
-                    <td colSpan="6" className="text-center py-4 text-gray-400">Nenhum boleto pendente neste período.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* TABELA PAGOS */}
+          {/* TABELA ARQUIVADOS */}
 
           <div className="bg-gray-800 p-6 rounded-xl">
-            <h2 className="text-xl font-bold mb-4 text-green-400">Histórico de Pagamentos</h2>
-            <div className="max-h-[240px] overflow-y-auto pr-2">
+            <h2 className="text-xl font-bold mb-4 text-blue-400">Boletos Arquivados</h2>
+
+            <div className="max-h-[280px] overflow-y-auto pr-2">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
@@ -512,7 +248,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagos.map((b) => {
+                  {arquivados.map((b) => {
                     const dataVenc = converterData(b.vencimento);
                     return (
                       <tr key={b.id} className="border-b border-gray-700">
@@ -532,28 +268,22 @@ export default function Dashboard() {
                         <td className="py-3">{b.banco || "-"}</td>
                         <td className="flex gap-2 py-3 whitespace-nowrap">
                           <button
-                            onClick={() => iniciarBaixa(b)}
-                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1.5 rounded text-xs font-medium text-white"
-                            title="Desmarcar pago"
+                            onClick={() => desarquivar(b)}
+                            className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white"
+                            title="Desarquivar"
                           >
-                            ↩
+                            📤
                           </button>
-                          <button
-                            onClick={() => arquivar(b)}
-                            className="bg-gray-600 hover:bg-gray-700 px-3 py-1.5 rounded text-xs font-medium text-white"
-                            title="Arquivar"
-                          >
-                            📁
-                          </button>
+                          <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
                           <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
                         </td>
                       </tr>
                     );
                   })}
-                  {pagos.length === 0 && (
+                  {arquivados.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="text-center py-4 text-gray-400">Nenhum boleto pago neste período.</td>
+                      <td colSpan="7" className="text-center py-4 text-gray-400">Nenhum boleto arquivado neste período.</td>
                     </tr>
                   )}
                 </tbody>
@@ -624,18 +354,6 @@ export default function Dashboard() {
               }
             />
 
-            <input
-              placeholder="Linha digitável"
-              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
-              value={boletoEditando.linhaDigitavel || ""}
-              onChange={(e) =>
-                setBoletoEditando({
-                  ...boletoEditando,
-                  linhaDigitavel: e.target.value
-                })
-              }
-            />
-
             <div className="flex gap-3">
 
               <button
@@ -669,7 +387,7 @@ export default function Dashboard() {
           <div className="bg-gray-800 p-6 rounded-xl w-96">
 
             <h2 className="text-xl mb-4 font-bold text-yellow-400">
-              Boleto Pendente
+              Boleto
             </h2>
 
             {boletoVisualizando?.linhaDigitavel && (
@@ -690,7 +408,7 @@ export default function Dashboard() {
                       boletoVisualizando.linhaDigitavel
                     )
                   }}
-                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-white"
+                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-gray-400"
                 >
                   Copiar
                 </button>
@@ -742,69 +460,6 @@ export default function Dashboard() {
 
         </div>
 
-      )}
-
-      {/* MODAL BAIXA (PAGAMENTO) */}
-
-      {modalBaixa && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-xl w-96">
-            <h2 className="text-xl mb-4 font-bold text-green-400">Dar Baixa no Boleto</h2>
-
-            <label className="block text-gray-400 text-sm mb-1">Data de Pagamento</label>
-            <input
-              type="date"
-              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
-              value={baixaData}
-              onChange={(e) => setBaixaData(e.target.value)}
-            />
-
-            <label className="block text-gray-400 text-sm mb-1">Valor Pago (R$)</label>
-            <input
-              placeholder="0,00"
-              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
-              value={baixaValor}
-              onChange={(e) => setBaixaValor(aplicarMascaraReal(e.target.value))}
-            />
-
-            <label className="block text-gray-400 text-sm mb-1">Conta Bancária</label>
-            <select
-              className="bg-gray-700 p-2 rounded w-full mb-4 text-white"
-              value={baixaBanco}
-              onChange={(e) => setBaixaBanco(e.target.value)}
-            >
-              <option value="">Selecione um banco</option>
-              {bancos.map((b) => (
-                <option key={b.id} value={b.nome}>{b.nome}</option>
-              ))}
-              <option value="novo">+ Adicionar novo banco...</option>
-            </select>
-
-            {baixaBanco === "novo" && (
-              <input
-                placeholder="Nome do novo banco"
-                className="bg-gray-700 p-2 rounded w-full mb-4 border border-blue-500"
-                value={novoBanco}
-                onChange={(e) => setNovoBanco(e.target.value)}
-              />
-            )}
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                onClick={cancelarBaixa}
-                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmarBaixa}
-                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold text-white"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
     </div>
