@@ -433,72 +433,74 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl mb-6">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-gray-600">
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF / Fatura</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
-                  <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendentesEVencidos.map((b) => {
-                  const data = converterData(b.vencimento);
-                  const isVencido = data && data < hoje;
-
-                  return (
-                    <tr key={b.id} className="border-b border-gray-700">
-                      <td className="py-3">
-                        <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                          {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
-                        </div>
-                      </td>
-                      <td className="py-3">R$ {formatarReal(b.valor)}</td>
-                      <td className="py-3">{data ? data.toLocaleDateString() : ""}</td>
-                      <td className="py-3">
-                        <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
-                          {b.numeroNF || "-"}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {isVencido ? (
-                          <span className="text-red-400 font-bold">Vencido</span>
-                        ) : (
-                          <span className="text-yellow-400">Pendente</span>
-                        )}
-                      </td>
-                      <td className="flex gap-2 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() => iniciarBaixa(b)}
-                          className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
-                          title="Dar baixa"
-                        >
-                          ✔
-                        </button>
-                        <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
-                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                        <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {pendentesEVencidos.length === 0 && (
-                  <tr>
-                    <td colSpan="6" className="text-center py-4 text-gray-400">Nenhum boleto pendente neste período.</td>
+            <div className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b border-gray-600">
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Vencimento</th>
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">NF / Fatura</th>
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
+                    <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pendentesEVencidos.map((b) => {
+                    const data = converterData(b.vencimento);
+                    const isVencido = data && data < hoje;
+
+                    return (
+                      <tr key={b.id} className="border-b border-gray-700">
+                        <td className="py-3">
+                          <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
+                            {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3">R$ {formatarReal(b.valor)}</td>
+                        <td className="py-3">{data ? data.toLocaleDateString() : ""}</td>
+                        <td className="py-3">
+                          <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
+                            {b.numeroNF || "-"}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          {isVencido ? (
+                            <span className="text-red-400 font-bold">Vencido</span>
+                          ) : (
+                            <span className="text-yellow-400">Pendente</span>
+                          )}
+                        </td>
+                        <td className="flex gap-2 py-3 whitespace-nowrap">
+                          <button
+                            onClick={() => iniciarBaixa(b)}
+                            className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
+                            title="Dar baixa"
+                          >
+                            ✔
+                          </button>
+                          <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
+                          <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
+                          <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {pendentesEVencidos.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="text-center py-4 text-gray-400">Nenhum boleto pendente neste período.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* TABELA PAGOS */}
 
           <div className="bg-gray-800 p-6 rounded-xl">
             <h2 className="text-xl font-bold mb-4 text-green-400">Histórico de Pagamentos</h2>
-            <div className="max-h-[240px] overflow-y-auto pr-2">
+            <div className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
