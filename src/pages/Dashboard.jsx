@@ -95,6 +95,12 @@ export default function Dashboard() {
       return vencimento.toDate();
     }
 
+    // Se for string no formato YYYY-MM-DD (comum em inputs de data), trata como data local para evitar erro de fuso horário
+    if (typeof vencimento === "string" && /^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
+      const [year, month, day] = vencimento.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
     const data = new Date(vencimento);
     data.setHours(0, 0, 0, 0);
     return data;
@@ -264,12 +270,15 @@ export default function Dashboard() {
 
   function abrirEditar(boleto) {
 
+    const dataVenc = converterData(boleto.vencimento);
+    const vencFormatado = dataVenc 
+      ? new Date(dataVenc.getTime() - (dataVenc.getTimezoneOffset() * 60000)).toISOString().substring(0, 10)
+      : "";
+
     setBoletoEditando({
       ...boleto,
       valor: formatarReal(boleto.valor),
-      vencimento: converterData(boleto.vencimento)
-        ?.toISOString()
-        .substring(0, 10)
+      vencimento: vencFormatado
     });
 
     setModalEditar(true);
@@ -310,8 +319,25 @@ export default function Dashboard() {
   // LISTAS SEPARADAS
   // ================================
 
-  const pendentesEVencidos = boletosFiltrados.filter(b => !b.pago);
-  const pagos = boletosFiltrados.filter(b => b.pago && !b.arquivado);
+  const pendentesEVencidos = boletosFiltrados
+    .filter(b => !b.pago)
+    .sort((a, b) => {
+      const dA = converterData(a.vencimento);
+      const dB = converterData(b.vencimento);
+      if (!dA) return 1;
+      if (!dB) return -1;
+      return dA - dB;
+    });
+
+  const pagos = boletosFiltrados
+    .filter(b => b.pago && !b.arquivado)
+    .sort((a, b) => {
+      const dA = converterData(a.vencimento);
+      const dB = converterData(b.vencimento);
+      if (!dA) return 1;
+      if (!dB) return -1;
+      return dB - dA;
+    });
 
   return (
 
