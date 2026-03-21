@@ -36,9 +36,11 @@ export default function NovoBoleto() {
 
   const [grupo, setGrupo] = useState("");
   const [parcelas, setParcelas] = useState(1);
+  const [vencimentosParcelas, setVencimentosParcelas] = useState({});
   const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
   const [pdfsBoletos, setPdfsBoletos] = useState({});
   const [salvando, setSalvando] = useState(false);
+
 
   useEffect(() => {
     carregarEmpresas();
@@ -159,11 +161,16 @@ export default function NovoBoleto() {
           }
         }
 
-        const dataParcela = new Date(dataBase);
+        let dataParcela;
 
-        dataParcela.setMonth(
-          dataBase.getMonth() + (i - 1)
-        );
+        if (vencimentosParcelas[index]) {
+          const [vAno, vMes, vDia] = vencimentosParcelas[index].split("-");
+          dataParcela = new Date(vAno, vMes - 1, vDia);
+        } else {
+          dataParcela = new Date(dataBase);
+          dataParcela.setMonth(dataBase.getMonth() + index);
+        }
+
 
         await addBoleto({
           empresaId,
@@ -456,14 +463,32 @@ export default function NovoBoleto() {
                   {Array.from({ length: parcelas || 1 }).map((_, i) => (
                     <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
                       <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
-                      <input
-                        placeholder="Linha digitável (opcional)"
-                        className="bg-gray-800 p-2 rounded w-full mb-3 text-white border border-gray-600"
-                        value={linhasDigitaveis[i] || ""}
-                        onChange={(e) =>
-                          setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
-                        }
-                      />
+                      
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <label className="block mb-1 text-xs text-gray-400">Vencimento Desta Parcela</label>
+                          <input
+                            type="date"
+                            className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
+                            value={vencimentosParcelas[i] || ""}
+                            onChange={(e) =>
+                              setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 text-xs text-gray-400">Linha Digitável (Opcional)</label>
+                          <input
+                            placeholder="Digitável..."
+                            className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
+                            value={linhasDigitaveis[i] || ""}
+                            onChange={(e) =>
+                              setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+
                       <label className="block mb-2 text-sm text-gray-400">
                         Anexar PDF do Boleto (Opcional)
                       </label>
@@ -477,6 +502,7 @@ export default function NovoBoleto() {
                       />
                     </div>
                   ))}
+
                 </div>
               </div>
 

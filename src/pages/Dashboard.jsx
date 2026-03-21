@@ -441,7 +441,7 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl mb-6">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <div className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+            <div className="max-h-[260px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
