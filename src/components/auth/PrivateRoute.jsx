@@ -1,21 +1,8 @@
-import { useEffect, useState } from "react";
-import { auth } from "../../services/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
 
 function PrivateRoute({ children }) {
-
-  const [usuario, setUsuario] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUsuario(user);
-      setCarregando(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { usuario, carregando } = useAuth();
 
   if (carregando) {
     return <div className="p-10">Carregando...</div>;
