@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
@@ -19,6 +20,7 @@ import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurr
 export default function Dashboard() {
 
   const navigate = useNavigate();
+  const { role } = useAuth();
 
   const [boletos, setBoletos] = useState([]);
 
@@ -507,7 +509,14 @@ export default function Dashboard() {
                           </button>
                           <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
+                          <button 
+                            onClick={() => excluir(b)} 
+                            disabled={role !== "admin"}
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`} 
+                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
+                          >
+                            🗑
+                          </button>
                         </td>
                       </tr>
                     );
@@ -574,7 +583,14 @@ export default function Dashboard() {
                             📁
                           </button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
+                          <button 
+                            onClick={() => excluir(b)}
+                            disabled={role !== "admin"}
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`} 
+                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
+                          >
+                            🗑
+                          </button>
                         </td>
                       </tr>
                     );

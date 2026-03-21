@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Arquivados from "./pages/Arquivados";
 import PrivateRoute from "./components/auth/PrivateRoute";
+import AdminRoute from "./components/auth/AdminRoute";
 
 export default function App() {
   return (
@@ -16,11 +17,12 @@ export default function App() {
       <Route
         path="/cadastro"
         element={
-          <PrivateRoute>
+          <AdminRoute>
             <Cadastro />
-          </PrivateRoute>
+          </AdminRoute>
         }
       />
+
 
       <Route
         path="/"

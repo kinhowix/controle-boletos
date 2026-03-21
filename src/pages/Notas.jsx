@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../components/layout/MainLayout";
+import { useAuth } from "../context/AuthContext";
+
 
 import {
   getNotas,
@@ -21,8 +23,9 @@ import { addBoleto } from "../services/boletosService";
 import { formatarReal, aplicarMascaraReal, parseReal } from "../utils/formatCurrency";
 
 export default function Notas() {
-
+  const { role } = useAuth();
   const [notas, setNotas] = useState([]);
+
   const [selecionadas, setSelecionadas] = useState([]);
 
   const [modal, setModal] = useState(false);
@@ -609,10 +612,13 @@ export default function Notas() {
                     </button>
                     <button
                       onClick={() => excluir(n.id)}
-                      className="text-red-400 hover:underline"
+                      disabled={role !== "admin"}
+                      className={`${role === "admin" ? "text-red-400 hover:underline" : "text-gray-600 cursor-not-allowed"}`}
+                      title={role === "admin" ? "Excluir" : "Acesso Restrito"}
                     >
                       excluir
                     </button>
+
 
                   </td>
 

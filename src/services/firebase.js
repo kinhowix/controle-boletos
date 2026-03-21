@@ -18,8 +18,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize a secondary app to allow admin to create users without logout
+const secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const secondaryAuth = getAuth(secondaryApp);
+
 
 
 

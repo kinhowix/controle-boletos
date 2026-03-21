@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../components/layout/MainLayout";
+import { useAuth } from "../context/AuthContext";
+
 import {
   getEmpresas,
   addEmpresa,
@@ -8,8 +10,9 @@ import {
 } from "../services/empresasService";
 
 export default function Empresas() {
-
+  const { role } = useAuth();
   const [empresas, setEmpresas] = useState([]);
+
   const [cnpj, setCnpj] = useState("");
   const [razao, setRazao] = useState("");
   const [fantasia, setFantasia] = useState("");
@@ -316,10 +319,13 @@ export default function Empresas() {
                     </button>
                     <button
                       onClick={() => handleExcluir(e.id)}
-                      className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-white text-xs font-medium"
+                      disabled={role !== "admin"}
+                      className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-white text-xs font-medium`}
+                      title={role === "admin" ? "Excluir" : "Acesso Restrito"}
                     >
                       Excluir
                     </button>
+
                   </td>
                 </tr>
               ))}

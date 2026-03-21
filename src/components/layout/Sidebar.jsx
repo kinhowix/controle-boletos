@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Sidebar() {
-
+  const { role } = useAuth();
   const location = useLocation();
+
 
   function linkClass(path) {
     return location.pathname === path
@@ -38,9 +40,12 @@ export default function Sidebar() {
           📊 Gráfico
         </Link>
 
-        <Link to="/cadastro" className={linkClass("/cadastro")}>
-          👤 Cadastro
-        </Link>
+        {role === "admin" && (
+          <Link to="/cadastro" className={linkClass("/cadastro")}>
+            👤 Cadastro
+          </Link>
+        )}
+
 
         <Link to="/arquivados" className={linkClass("/arquivados")}>
           📁 Arquivados
