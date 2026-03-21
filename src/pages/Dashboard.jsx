@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
@@ -19,6 +18,7 @@ import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurr
 export default function Dashboard() {
 
   const navigate = useNavigate();
+  const { role } = useAuth();
 
   const [boletos, setBoletos] = useState([]);
 
@@ -146,10 +146,7 @@ export default function Dashboard() {
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
-  async function sair() {
-    await signOut(auth);
-    navigate("/login");
-  }
+
 
   // ================================
   // FILTROS
@@ -271,7 +268,7 @@ export default function Dashboard() {
   function abrirEditar(boleto) {
 
     const dataVenc = converterData(boleto.vencimento);
-    const vencFormatado = dataVenc 
+    const vencFormatado = dataVenc
       ? new Date(dataVenc.getTime() - (dataVenc.getTimezoneOffset() * 60000)).toISOString().substring(0, 10)
       : "";
 
@@ -351,22 +348,7 @@ export default function Dashboard() {
 
         <div className="p-6">
 
-          {/* TOPO */}
 
-          <div className="flex justify-between mb-6">
-
-            <h1 className="text-2xl font-bold">
-              Painel Financeiro
-            </h1>
-
-            <button
-              onClick={sair}
-              className="bg-red-600 px-4 py-2 rounded"
-            >
-              Sair
-            </button>
-
-          </div>
 
           {/* RESUMO */}
 
@@ -459,7 +441,7 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl mb-6">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <div className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+            <div className="max-h-[260px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
@@ -507,7 +489,14 @@ export default function Dashboard() {
                           </button>
                           <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
+                          <button
+                            onClick={() => excluir(b)}
+                            disabled={role !== "admin"}
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
+                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
+                          >
+                            🗑
+                          </button>
                         </td>
                       </tr>
                     );
@@ -574,7 +563,14 @@ export default function Dashboard() {
                             📁
                           </button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button onClick={() => excluir(b)} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Excluir">🗑</button>
+                          <button
+                            onClick={() => excluir(b)}
+                            disabled={role !== "admin"}
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
+                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
+                          >
+                            🗑
+                          </button>
                         </td>
                       </tr>
                     );

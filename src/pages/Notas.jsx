@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../components/layout/MainLayout";
+import { useAuth } from "../context/AuthContext";
+
 
 import {
   getNotas,
@@ -21,17 +23,19 @@ import { addBoleto } from "../services/boletosService";
 import { formatarReal, aplicarMascaraReal, parseReal } from "../utils/formatCurrency";
 
 export default function Notas() {
-
+  const { role } = useAuth();
   const [notas, setNotas] = useState([]);
+
   const [selecionadas, setSelecionadas] = useState([]);
 
   const [modal, setModal] = useState(false);
 
   const [vencimento, setVencimento] = useState("");
   const [parcelas, setParcelas] = useState(1);
-
+  const [vencimentosParcelas, setVencimentosParcelas] = useState({});
   const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
   const [pdfsBoletos, setPdfsBoletos] = useState({});
+
 
   // Estados para Código de Barras
   const [modalBarcode, setModalBarcode] = useState(false);
@@ -425,13 +429,16 @@ export default function Notas() {
           }
         }
 
-        const dataParcela = new Date(
-          vencimento + "T12:00:00"
-        );
+        let dataParcela;
 
-        dataParcela.setMonth(
-          dataParcela.getMonth() + (i - 1)
-        );
+        if (vencimentosParcelas[index]) {
+          const [vAno, vMes, vDia] = vencimentosParcelas[index].split("-");
+          dataParcela = new Date(vAno, vMes - 1, vDia);
+        } else {
+          dataParcela = new Date(vencimento + "T12:00:00");
+          dataParcela.setMonth(dataParcela.getMonth() + index);
+        }
+
 
         const boletoId = await addBoleto({
           empresa,
@@ -609,10 +616,13 @@ export default function Notas() {
                     </button>
                     <button
                       onClick={() => excluir(n.id)}
-                      className="text-red-400 hover:underline"
+                      disabled={role !== "admin"}
+                      className={`${role === "admin" ? "text-red-400 hover:underline" : "text-gray-600 cursor-not-allowed"}`}
+                      title={role === "admin" ? "Excluir" : "Acesso Restrito"}
                     >
                       excluir
                     </button>
+
 
                   </td>
 
@@ -669,13 +679,24 @@ export default function Notas() {
               {Array.from({ length: parcelas || 1 }).map((_, i) => (
                 <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
                   <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
+                  <div className="grid grid-cols-1 gap-2 mb-3">
+                    <label className="text-[10px] text-gray-400 uppercase tracking-wider">Vencimento da Parcela</label>
+                    <input
+                      type="date"
+                      value={vencimentosParcelas[i] || ""}
+                      onChange={(e) =>
+                        setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value })
+                      }
+                      className="bg-gray-800 p-2 rounded w-full border border-gray-600 text-white"
+                    />
+                  </div>
                   <input
                     placeholder="Linha digitável (opcional)"
                     value={linhasDigitaveis[i] || ""}
                     onChange={(e) =>
                       setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
                     }
-                    className="bg-gray-800 p-2 rounded w-full mb-3 border border-gray-600"
+                    className="bg-gray-800 p-2 rounded w-full mb-3 border border-gray-600 text-white"
                   />
                   <label className="block mb-2 text-sm text-gray-400">
                     Anexar PDF do Boleto (Opcional)
@@ -690,6 +711,7 @@ export default function Notas() {
                   />
                 </div>
               ))}
+
             </div>
 
             <div className="flex gap-3">

@@ -72,9 +72,7 @@ export default function Login() {
             Esqueceu a senha?
           </button>
 
-          <Link to="/cadastro" className="text-gray-200 hover:underline">
-            Não possui conta? Cadastre-se
-          </Link>
+
         </div>
       </form>
     </div>
