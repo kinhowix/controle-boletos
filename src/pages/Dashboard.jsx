@@ -1,6 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -148,10 +146,7 @@ export default function Dashboard() {
     })
     .reduce((acc, b) => acc + Number(b.valor || 0), 0);
 
-  async function sair() {
-    await signOut(auth);
-    navigate("/login");
-  }
+
 
   // ================================
   // FILTROS
@@ -273,7 +268,7 @@ export default function Dashboard() {
   function abrirEditar(boleto) {
 
     const dataVenc = converterData(boleto.vencimento);
-    const vencFormatado = dataVenc 
+    const vencFormatado = dataVenc
       ? new Date(dataVenc.getTime() - (dataVenc.getTimezoneOffset() * 60000)).toISOString().substring(0, 10)
       : "";
 
@@ -353,22 +348,7 @@ export default function Dashboard() {
 
         <div className="p-6">
 
-          {/* TOPO */}
 
-          <div className="flex justify-between mb-6">
-
-            <h1 className="text-2xl font-bold">
-              Painel Financeiro
-            </h1>
-
-            <button
-              onClick={sair}
-              className="bg-red-600 px-4 py-2 rounded"
-            >
-              Sair
-            </button>
-
-          </div>
 
           {/* RESUMO */}
 
@@ -509,10 +489,10 @@ export default function Dashboard() {
                           </button>
                           <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button 
-                            onClick={() => excluir(b)} 
+                          <button
+                            onClick={() => excluir(b)}
                             disabled={role !== "admin"}
-                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`} 
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
                             title={role === "admin" ? "Excluir" : "Acesso Restrito"}
                           >
                             🗑
@@ -583,10 +563,10 @@ export default function Dashboard() {
                             📁
                           </button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button 
+                          <button
                             onClick={() => excluir(b)}
                             disabled={role !== "admin"}
-                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`} 
+                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
                             title={role === "admin" ? "Excluir" : "Acesso Restrito"}
                           >
                             🗑
