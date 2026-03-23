@@ -660,6 +660,52 @@ export default function Dashboard() {
               }
             />
 
+            {/* PDF Management Section */}
+            <div className="mb-4 bg-gray-700/50 p-3 rounded border border-gray-600">
+              <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                PDF do Boleto
+              </label>
+              
+              {boletoEditando.pdf ? (
+                <div className="flex items-center justify-between mb-3 bg-green-900/20 p-2 rounded border border-green-700/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400 text-xs font-bold">✓ PDF ANEXADO</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBoletoEditando({ ...boletoEditando, pdf: null })}
+                    className="bg-red-600 hover:bg-red-700 text-white text-[10px] px-2 py-1 rounded transition-colors font-bold uppercase"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-3 text-gray-500 text-xs italic">
+                  Nenhum arquivo PDF anexado
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="application/pdf"
+                className="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 800 * 1024) {
+                    alert("O arquivo é muito grande (máximo 800 KB)");
+                    e.target.value = "";
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.readAsDataURL(file);
+                  reader.onload = () => {
+                    setBoletoEditando({ ...boletoEditando, pdf: reader.result });
+                  };
+                }}
+              />
+            </div>
+
             <div className="flex gap-3">
 
               <button
