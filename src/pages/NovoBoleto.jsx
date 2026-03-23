@@ -21,6 +21,7 @@ export default function NovoBoleto() {
 
   const [empresas, setEmpresas] = useState([]);
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
 
   const [empresaId, setEmpresaId] = useState("");
   const [empresaNome, setEmpresaNome] = useState("");
@@ -339,38 +340,82 @@ export default function NovoBoleto() {
 
             </div>
 
-            {/* BUSCAR EMPRESA */}
+            {/* BUSCA E SELEÇÃO DE EMPRESA COMBINADA */}
+            <div className="relative mb-4">
+              <label className="block mb-2 text-sm text-gray-300">
+                Empresa
+              </label>
+              
+              <div className="relative flex items-center">
+                <input
+                  placeholder="Pesquisar e selecionar empresa..."
+                  className={`bg-gray-700 p-2.5 rounded w-full text-white border transition-all outline-none ${
+                    empresaId 
+                      ? "border-green-600/50 bg-green-900/10 font-semibold" 
+                      : "border-gray-600 focus:border-blue-500"
+                  }`}
+                  value={empresaId ? empresaNome : buscaEmpresa}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (empresaId) {
+                      setEmpresaId("");
+                      setEmpresaNome("");
+                      setBuscaEmpresa(val);
+                    } else {
+                      setBuscaEmpresa(val);
+                    }
+                    setMostrarSugestoes(true);
+                  }}
+                  onFocus={() => setMostrarSugestoes(true)}
+                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 200)}
+                />
+                
+                {empresaId && (
+                  <button
+                    onClick={() => {
+                      setEmpresaId("");
+                      setEmpresaNome("");
+                      setBuscaEmpresa("");
+                    }}
+                    className="absolute right-3 text-gray-400 hover:text-white transition-colors"
+                    title="Limpar seleção"
+                  >
+                    ✕
+                  </button>
+                )}
 
-            <input
-              placeholder="Pesquisar empresa..."
-              className="bg-gray-700 p-2 rounded w-full mb-4"
-              value={buscaEmpresa}
-              onChange={(e) =>
-                setBuscaEmpresa(e.target.value)
-              }
-            />
+                {!empresaId && (
+                  <div className="absolute right-3 text-gray-500 pointer-events-none">
+                    🔍
+                  </div>
+                )}
+              </div>
 
-            <select
-              className="bg-gray-700 p-2 rounded w-full mb-4"
-              value={empresaId}
-              onChange={(e) =>
-                selecionarEmpresa(e.target.value)
-              }
-            >
-              <option value="">
-                Selecionar empresa
-              </option>
-
-              {empresasFiltradas.map((e) => (
-                <option
-                  key={e.id}
-                  value={e.id}
-                >
-                  {e.razao}
-                </option>
-              ))}
-
-            </select>
+              {/* LISTA DE SUGESTÕES */}
+              {mostrarSugestoes && !empresaId && (
+                <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto scrollbar-thin">
+                  {empresasFiltradas.length > 0 ? (
+                    empresasFiltradas.map((e) => (
+                      <div
+                        key={e.id}
+                        className="px-4 py-2.5 hover:bg-blue-600 transition-colors cursor-pointer text-sm border-b border-gray-700/50 last:border-0"
+                        onClick={() => {
+                          selecionarEmpresa(e.id);
+                          setMostrarSugestoes(false);
+                          setBuscaEmpresa("");
+                        }}
+                      >
+                        {e.razao}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-gray-500 text-sm italic text-center">
+                      Nenhuma empresa encontrada
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* NOVA EMPRESA */}
 
