@@ -450,6 +450,7 @@ export default function Notas() {
           parcela: i,
           totalParcelas: parcelas,
           pago: false,
+          tipoDespesa: "Fixa",
           numeroNF: arrayNumerosNF
         });
 

@@ -9,6 +9,7 @@ import Cadastro from "./pages/Cadastro";
 import Arquivados from "./pages/Arquivados";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import AdminRoute from "./components/auth/AdminRoute";
+import Migracao from "./pages/Migracao";
 
 export default function App() {
   return (
@@ -59,6 +60,15 @@ export default function App() {
           <PrivateRoute>
             <Grafico />
           </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/migracao"
+        element={
+          <AdminRoute>
+            <Migracao />
+          </AdminRoute>
         }
       />
 

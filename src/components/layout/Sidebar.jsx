@@ -48,9 +48,14 @@ export default function Sidebar() {
         </Link>
 
         {role === "admin" && (
-          <Link to="/cadastro" className={linkClass("/cadastro")}>
-            👤 Cadastro
-          </Link>
+          <>
+            <Link to="/cadastro" className={linkClass("/cadastro")}>
+              👤 Cadastro
+            </Link>
+            <Link to="/migracao" className={linkClass("/migracao")}>
+              ⚙️ Migração
+            </Link>
+          </>
         )}
 
 
