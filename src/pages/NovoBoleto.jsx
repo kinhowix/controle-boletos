@@ -14,6 +14,7 @@ import {
 
 import { lerXMLNFe } from "../utils/xmlNFeReader";
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
+import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 
 export default function NovoBoleto() {
 
@@ -580,7 +581,7 @@ export default function NovoBoleto() {
                             className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
                             value={linhasDigitaveis[i] || ""}
                             onChange={(e) =>
-                              setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                              setLinhasDigitaveis({ ...linhasDigitaveis, [i]: cleanLinhaDigitavel(e.target.value) })
                             }
                           />
                         </div>

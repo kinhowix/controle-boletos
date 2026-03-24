@@ -55,6 +55,9 @@ export default function Sidebar() {
             <Link to="/migracao" className={linkClass("/migracao")}>
               ⚙️ Migração
             </Link>
+            <Link to="/migracao-linha" className={linkClass("/migracao-linha")}>
+              🧹 Limpar Linhas
+            </Link>
           </>
         )}
 

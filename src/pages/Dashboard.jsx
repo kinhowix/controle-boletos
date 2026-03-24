@@ -14,6 +14,7 @@ import {
 import { getBancos, addBanco } from "../services/bancosService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
+import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 
 export default function Dashboard() {
 
@@ -655,7 +656,7 @@ export default function Dashboard() {
               onChange={(e) =>
                 setBoletoEditando({
                   ...boletoEditando,
-                  linhaDigitavel: e.target.value
+                  linhaDigitavel: cleanLinhaDigitavel(e.target.value)
                 })
               }
             />
@@ -751,13 +752,13 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-gray-700 p-2 rounded break-all text-white">
-                  {boletoVisualizando.linhaDigitavel}
+                  {cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)}
                 </div>
 
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(
-                      boletoVisualizando.linhaDigitavel
+                      cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)
                     )
                   }}
                   className="mt-2 bg-blue-600 px-3 py-1 rounded text-white"

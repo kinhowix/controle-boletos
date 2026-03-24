@@ -21,6 +21,7 @@ import {
 import { addBoleto } from "../services/boletosService";
 
 import { formatarReal, aplicarMascaraReal, parseReal } from "../utils/formatCurrency";
+import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 
 export default function Notas() {
   const { role } = useAuth();
@@ -695,7 +696,7 @@ export default function Notas() {
                     placeholder="Linha digitável (opcional)"
                     value={linhasDigitaveis[i] || ""}
                     onChange={(e) =>
-                      setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                      setLinhasDigitaveis({ ...linhasDigitaveis, [i]: cleanLinhaDigitavel(e.target.value) })
                     }
                     className="bg-gray-800 p-2 rounded w-full mb-3 border border-gray-600 text-white"
                   />
