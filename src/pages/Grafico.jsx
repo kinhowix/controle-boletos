@@ -85,7 +85,7 @@ export default function Grafico() {
       <div className="bg-gray-800 p-8 rounded-2xl shadow-xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg text-gray-400 font-semibold">
-            Total de Boletos por Mês
+            Total de Boletos / Despesas por Mês
           </h2>
           <select
             value={anoFiltro}

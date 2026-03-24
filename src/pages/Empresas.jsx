@@ -42,29 +42,21 @@ export default function Empresas() {
   // =========================
 
   function formatarCNPJ(valor) {
+    let chars = valor.replace(/\D/g, "");
+    if (chars.length > 14) chars = chars.slice(0, 14);
 
-    // Permite alfanumérico e converte para maiúsculo
-    let chars = valor.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-
-    if (chars.length > 14) {
-      chars = chars.slice(0, 14);
+    if (chars.length <= 11) {
+      if (chars.length > 9) return chars.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+      if (chars.length > 6) return chars.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
+      if (chars.length > 3) return chars.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+      return chars;
+    } else {
+      if (chars.length > 12) return chars.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+      if (chars.length > 8) return chars.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})$/, "$1.$2.$3/$4");
+      if (chars.length > 5) return chars.replace(/^(\d{2})(\d{3})(\d{3})$/, "$1.$2.$3");
+      if (chars.length > 2) return chars.replace(/^(\d{2})(\d{3})$/, "$1.$2");
+      return chars;
     }
-
-    // Garante que os 2 últimos caracteres (DV) sejam apenas números
-    if (chars.length > 12) {
-      let base = chars.slice(0, 12);
-      let dv = chars.slice(12).replace(/\D/g, ""); // Remove qualquer letra do DV
-      chars = base + dv;
-    }
-
-    // Aplica a máscara XX.XXX.XXX/XXXX-XX
-    if (chars.length > 12) chars = chars.replace(/^(.{2})(.{3})(.{3})(.{4})(.+)/, "$1.$2.$3/$4-$5");
-    else if (chars.length > 8) chars = chars.replace(/^(.{2})(.{3})(.{3})(.+)/, "$1.$2.$3/$4");
-    else if (chars.length > 5) chars = chars.replace(/^(.{2})(.{3})(.+)/, "$1.$2.$3");
-    else if (chars.length > 2) chars = chars.replace(/^(.{2})(.+)/, "$1.$2");
-
-    return chars;
-
   }
 
   function handleCNPJ(e) {
@@ -225,10 +217,10 @@ export default function Empresas() {
       {/* FORM */}
       <div className="bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
 
-        <div className="grid grid-cols-2 gap-4">
+         <div className="grid grid-cols-2 gap-4">
 
           <input
-            placeholder="CNPJ"
+            placeholder="CPF / CNPJ"
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={cnpj}
             onChange={handleCNPJ}
@@ -236,20 +228,25 @@ export default function Empresas() {
 
           <button
             onClick={buscarCNPJ}
-            className="bg-blue-600 hover:bg-blue-700 rounded text-white"
+            disabled={cnpj.replace(/\D/g, "").length < 14}
+            className={`rounded text-white transition ${
+              cnpj.replace(/\D/g, "").length < 14 
+                ? "bg-gray-600 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20"
+            }`}
           >
-            Buscar CNPJ
+            Buscar Dados (CNPJ)
           </button>
 
           <input
-            placeholder="Razão Social"
+            placeholder="Nome / Razão Social"
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={razao}
             onChange={(e) => setRazao(e.target.value)}
           />
 
           <input
-            placeholder="Fantasia"
+            placeholder="Apelido / Fantasia"
             className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
             value={fantasia}
             onChange={(e) => setFantasia(e.target.value)}
@@ -274,9 +271,9 @@ export default function Empresas() {
 
         <button
           onClick={salvar}
-          className="mt-6 bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white"
+          className="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-full text-white font-bold transition-all shadow-lg shadow-green-900/20"
         >
-          Salvar Empresa
+          Salvar Cadastro
         </button>
 
       </div>
@@ -295,8 +292,8 @@ export default function Empresas() {
 
             <thead className="sticky top-0 bg-gray-800 z-10">
               <tr className="text-left border-b border-gray-600">
-                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CNPJ</th>
-                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CPF / CNPJ</th>
+                <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Nome / Empresa</th>
                 <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Cidade</th>
                 <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">UF</th>
                 <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 w-px whitespace-nowrap">Ações</th>
@@ -342,9 +339,9 @@ export default function Empresas() {
           <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-lg">
             <h2 className="text-xl font-semibold mb-4">Editar Empresa</h2>
 
-            <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-2 gap-4">
               <input
-                placeholder="CNPJ"
+                placeholder="CPF / CNPJ"
                 className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
                 value={editCnpj}
                 onChange={handleEditCNPJ}
@@ -352,14 +349,14 @@ export default function Empresas() {
               <div /> {/* Espaçador */}
 
               <input
-                placeholder="Razão Social"
+                placeholder="Nome / Razão Social"
                 className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
                 value={editRazao}
                 onChange={(e) => setEditRazao(e.target.value)}
               />
 
               <input
-                placeholder="Fantasia"
+                placeholder="Apelido / Fantasia"
                 className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2"
                 value={editFantasia}
                 onChange={(e) => setEditFantasia(e.target.value)}

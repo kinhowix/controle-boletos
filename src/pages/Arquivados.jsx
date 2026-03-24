@@ -16,6 +16,7 @@ import {
 import { getBancos } from "../services/bancosService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
+import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 
 export default function Arquivados() {
 
@@ -407,13 +408,13 @@ export default function Arquivados() {
                 </div>
 
                 <div className="bg-gray-700 p-2 rounded break-all text-white">
-                  {boletoVisualizando.linhaDigitavel}
+                  {cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)}
                 </div>
 
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(
-                      boletoVisualizando.linhaDigitavel
+                      cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)
                     )
                   }}
                   className="mt-2 bg-blue-600 px-3 py-1 rounded text-gray-400"

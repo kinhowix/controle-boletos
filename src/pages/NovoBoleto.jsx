@@ -14,6 +14,7 @@ import {
 
 import { lerXMLNFe } from "../utils/xmlNFeReader";
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
+import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 
 export default function NovoBoleto() {
 
@@ -21,6 +22,7 @@ export default function NovoBoleto() {
 
   const [empresas, setEmpresas] = useState([]);
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
 
   const [empresaId, setEmpresaId] = useState("");
   const [empresaNome, setEmpresaNome] = useState("");
@@ -39,6 +41,7 @@ export default function NovoBoleto() {
   const [vencimentosParcelas, setVencimentosParcelas] = useState({});
   const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
   const [pdfsBoletos, setPdfsBoletos] = useState({});
+  const [tipoDespesa, setTipoDespesa] = useState("Fixa");
   const [salvando, setSalvando] = useState(false);
 
 
@@ -186,6 +189,7 @@ export default function NovoBoleto() {
           parcela: i,
           totalParcelas: parcelas,
           pago: false,
+          tipoDespesa: tipoDespesa,
         });
       }
 
@@ -339,38 +343,128 @@ export default function NovoBoleto() {
 
             </div>
 
-            {/* BUSCAR EMPRESA */}
+            {/* TIPO DE DESPESA */}
+            <div className="mb-6 py-4 border-y border-gray-700/50">
+              <label className="block mb-3 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Classificação da Despesa
+              </label>
+              <div className="flex gap-4">
+                <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all flex-1 ${
+                  tipoDespesa === "Fixa" 
+                    ? "bg-blue-600/20 border-blue-500 text-white shadow-[0_0_15px_-5px_rgba(59,130,246,0.5)]" 
+                    : "bg-gray-700/50 border-gray-600 text-gray-400 hover:border-gray-500"
+                }`}>
+                  <input
+                    type="radio"
+                    name="tipoDespesa"
+                    value="Fixa"
+                    checked={tipoDespesa === "Fixa"}
+                    onChange={(e) => setTipoDespesa(e.target.value)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500 bg-gray-800 border-gray-600"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold uppercase">FIXA</span>
+                    <span className="text-[10px] opacity-60">Custos recorrentes</span>
+                  </div>
+                </label>
 
-            <input
-              placeholder="Pesquisar empresa..."
-              className="bg-gray-700 p-2 rounded w-full mb-4"
-              value={buscaEmpresa}
-              onChange={(e) =>
-                setBuscaEmpresa(e.target.value)
-              }
-            />
+                <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all flex-1 ${
+                  tipoDespesa === "Variavel" 
+                    ? "bg-purple-600/20 border-purple-500 text-white shadow-[0_0_15px_-5px_rgba(168,85,247,0.5)]" 
+                    : "bg-gray-700/50 border-gray-600 text-gray-400 hover:border-gray-500"
+                }`}>
+                  <input
+                    type="radio"
+                    name="tipoDespesa"
+                    value="Variavel"
+                    checked={tipoDespesa === "Variavel"}
+                    onChange={(e) => setTipoDespesa(e.target.value)}
+                    className="w-4 h-4 text-purple-600 focus:ring-purple-500 bg-gray-800 border-gray-600"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold uppercase">VARIÁVEL</span>
+                    <span className="text-[10px] opacity-60">Custos esporádicos</span>
+                  </div>
+                </label>
+              </div>
+            </div>
 
-            <select
-              className="bg-gray-700 p-2 rounded w-full mb-4"
-              value={empresaId}
-              onChange={(e) =>
-                selecionarEmpresa(e.target.value)
-              }
-            >
-              <option value="">
-                Selecionar empresa
-              </option>
+            {/* BUSCA E SELEÇÃO DE EMPRESA COMBINADA */}
+            <div className="relative mb-4">
+              <label className="block mb-2 text-sm text-gray-300">
+                Empresa
+              </label>
+              
+              <div className="relative flex items-center">
+                <input
+                  placeholder="Pesquisar e selecionar empresa..."
+                  className={`bg-gray-700 p-2.5 rounded w-full text-white border transition-all outline-none ${
+                    empresaId 
+                      ? "border-green-600/50 bg-green-900/10 font-semibold" 
+                      : "border-gray-600 focus:border-blue-500"
+                  }`}
+                  value={empresaId ? empresaNome : buscaEmpresa}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (empresaId) {
+                      setEmpresaId("");
+                      setEmpresaNome("");
+                      setBuscaEmpresa(val);
+                    } else {
+                      setBuscaEmpresa(val);
+                    }
+                    setMostrarSugestoes(true);
+                  }}
+                  onFocus={() => setMostrarSugestoes(true)}
+                  onBlur={() => setTimeout(() => setMostrarSugestoes(false), 200)}
+                />
+                
+                {empresaId && (
+                  <button
+                    onClick={() => {
+                      setEmpresaId("");
+                      setEmpresaNome("");
+                      setBuscaEmpresa("");
+                    }}
+                    className="absolute right-3 text-gray-400 hover:text-white transition-colors"
+                    title="Limpar seleção"
+                  >
+                    ✕
+                  </button>
+                )}
 
-              {empresasFiltradas.map((e) => (
-                <option
-                  key={e.id}
-                  value={e.id}
-                >
-                  {e.razao}
-                </option>
-              ))}
+                {!empresaId && (
+                  <div className="absolute right-3 text-gray-500 pointer-events-none">
+                    🔍
+                  </div>
+                )}
+              </div>
 
-            </select>
+              {/* LISTA DE SUGESTÕES */}
+              {mostrarSugestoes && !empresaId && (
+                <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto scrollbar-thin">
+                  {empresasFiltradas.length > 0 ? (
+                    empresasFiltradas.map((e) => (
+                      <div
+                        key={e.id}
+                        className="px-4 py-2.5 hover:bg-blue-600 transition-colors cursor-pointer text-sm border-b border-gray-700/50 last:border-0"
+                        onClick={() => {
+                          selecionarEmpresa(e.id);
+                          setMostrarSugestoes(false);
+                          setBuscaEmpresa("");
+                        }}
+                      >
+                        {e.razao}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-gray-500 text-sm italic text-center">
+                      Nenhuma empresa encontrada
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* NOVA EMPRESA */}
 
@@ -469,11 +563,15 @@ export default function NovoBoleto() {
                           <label className="block mb-1 text-xs text-gray-400">Vencimento Desta Parcela</label>
                           <input
                             type="date"
-                            className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
-                            value={vencimentosParcelas[i] || ""}
-                            onChange={(e) =>
-                              setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value })
-                            }
+                            className={`bg-gray-800 p-2 rounded w-full text-white border border-gray-600 ${
+                              (parcelas === 1 && i === 0) ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                            value={(parcelas === 1 && i === 0) ? vencimento : (vencimentosParcelas[i] || "")}
+                            onChange={(e) => {
+                              if (parcelas === 1 && i === 0) return;
+                              setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value });
+                            }}
+                            readOnly={parcelas === 1 && i === 0}
                           />
                         </div>
                         <div>
@@ -483,7 +581,7 @@ export default function NovoBoleto() {
                             className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
                             value={linhasDigitaveis[i] || ""}
                             onChange={(e) =>
-                              setLinhasDigitaveis({ ...linhasDigitaveis, [i]: e.target.value })
+                              setLinhasDigitaveis({ ...linhasDigitaveis, [i]: cleanLinhaDigitavel(e.target.value) })
                             }
                           />
                         </div>
