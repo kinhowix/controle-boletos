@@ -9,9 +9,11 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   async function sair() {
+    sessionStorage.removeItem("avisoVencimentoMostrado");
     await signOut(auth);
     navigate("/login");
   }
+
 
   function linkClass(path) {
     return location.pathname === path
