@@ -110,11 +110,17 @@ export default function Dashboard() {
       });
 
       if (proximos.length > 0) {
-        setBoletosProximos(proximos);
-        setShowAvisoVencimento(true);
+        // Verificar se já mostrou nesta sessão
+        const jaMostrou = sessionStorage.getItem("avisoVencimentoMostrado");
+        if (!jaMostrou) {
+          setBoletosProximos(proximos);
+          setShowAvisoVencimento(true);
+          sessionStorage.setItem("avisoVencimentoMostrado", "true");
+        }
       }
     }
   }
+
 
 
   function focarInputEmpresa() {
