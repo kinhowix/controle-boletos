@@ -3,8 +3,6 @@ import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, secondaryAuth } from "../services/firebase";
 import { Link } from "react-router-dom";
 import { getUsers, setUserRole, deleteUserDoc } from "../services/usersService";
-import { getSettings, updateSettings } from "../services/settingsService";
-
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
@@ -17,35 +15,10 @@ export default function Cadastro() {
   const [mensagem, setMensagem] = useState(null);
   const [erro, setErro] = useState(null);
   const [carregando, setCarregando] = useState(false);
-  const [waNumber, setWaNumber] = useState("");
-  const [salvandoConfig, setSalvandoConfig] = useState(false);
-
 
   useEffect(() => {
     carregarUsuarios();
-    carregarConfiguracoes();
   }, []);
-
-  async function carregarConfiguracoes() {
-    const config = await getSettings();
-    if (config && config.whatsappNumber) {
-      setWaNumber(config.whatsappNumber);
-    }
-  }
-
-  async function salvarWhatsApp(e) {
-    e.preventDefault();
-    setSalvandoConfig(true);
-    const sucesso = await updateSettings({ whatsappNumber: waNumber });
-    if (sucesso) {
-      setMensagem("Configuração de WhatsApp atualizada!");
-      setTimeout(() => setMensagem(null), 3000);
-    } else {
-      setErro("Erro ao salvar configuração.");
-    }
-    setSalvandoConfig(false);
-  }
-
 
   async function carregarUsuarios() {
     const lista = await getUsers();
@@ -212,39 +185,7 @@ export default function Cadastro() {
                   </button>
                 </form>
               </div>
-
-              {/* CONFIGURAÇÃO WHATSAPP */}
-              <div className="bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 mt-8">
-                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <span>📱</span> Configuração WhatsApp
-                </h2>
-                <form onSubmit={salvarWhatsApp} className="flex flex-col gap-4">
-                  <div>
-                    <label className="block mb-2 text-sm text-gray-400 uppercase tracking-wider">Número para Avisos</label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 5511999999999"
-                      className="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      value={waNumber}
-                      onChange={(e) => setWaNumber(e.target.value)}
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1">Inclua o DDI (55) seguido do DDD e número.</p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={salvandoConfig}
-                    className={`w-full p-3 rounded-xl font-bold text-white transition-all ${
-                      salvandoConfig
-                        ? "bg-gray-600 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-500"
-                    }`}
-                  >
-                    {salvandoConfig ? "Salvando..." : "Salvar Número"}
-                  </button>
-                </form>
-              </div>
             </div>
-
 
             {/* LISTAGEM */}
             <div className="lg:col-span-2">
