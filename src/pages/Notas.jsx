@@ -75,9 +75,22 @@ export default function Notas() {
 
     const dados = await getNotas();
 
-    const disponiveis = dados.filter(
+    let disponiveis = dados.filter(
       (n) => !n.usadaEmBoleto
     );
+
+    // Ordenar da mais recente (topo) para mais antiga (baixo)
+    disponiveis.sort((a, b) => {
+      const dataA = a.data || "";
+      const dataB = b.data || "";
+      
+      // Notas sem data (XML recém-importado) ficam no topo para destaque
+      if (!dataA && dataB) return -1;
+      if (dataA && !dataB) return 1;
+      
+      // Ordenação decrescente (mais recente primeiro)
+      return dataB.localeCompare(dataA);
+    });
 
     setNotas(disponiveis);
 
