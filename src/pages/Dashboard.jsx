@@ -725,8 +725,20 @@ export default function Dashboard() {
             />
 
             <input
+              placeholder="Linha digitável do PIX"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white border-l-4 border-blue-500"
+              value={boletoEditando.linhaDigitavelPix || ""}
+              onChange={(e) =>
+                setBoletoEditando({
+                  ...boletoEditando,
+                  linhaDigitavelPix: e.target.value
+                })
+              }
+            />
+
+            <input
               placeholder="Linha digitável"
-              className="bg-gray-700 p-2 rounded w-full mb-3 text-white"
+              className="bg-gray-700 p-2 rounded w-full mb-3 text-white border-l-4 border-gray-500"
               value={boletoEditando.linhaDigitavel || ""}
               onChange={(e) =>
                 setBoletoEditando({
@@ -873,31 +885,44 @@ export default function Dashboard() {
               Boleto Pendente
             </h2>
 
-            {boletoVisualizando?.linhaDigitavel && (
-
+            {boletoVisualizando?.linhaDigitavelPix && (
               <div className="mb-4">
-
-                <div className="text-xl p-2 rounded font-semibold text-gray-400">
-                  Linha digitável
+                <div className="text-sm p-1 rounded font-semibold text-blue-400 uppercase tracking-widest">
+                  PIX Copia e Cola / Chave
                 </div>
+                <div className="bg-gray-700 p-2 rounded break-all text-white font-mono text-sm border border-blue-500/30">
+                  {boletoVisualizando.linhaDigitavelPix}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(boletoVisualizando.linhaDigitavelPix)
+                  }}
+                  className="mt-2 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded text-white font-bold text-sm shadow-lg"
+                >
+                  Copiar PIX
+                </button>
+              </div>
+            )}
 
-                <div className="bg-gray-700 p-2 rounded break-all text-white">
+            {boletoVisualizando?.linhaDigitavel && (
+              <div className="mb-4">
+                <div className="text-sm p-1 rounded font-semibold text-gray-400 uppercase tracking-widest">
+                  Linha digitável (Boleto)
+                </div>
+                <div className="bg-gray-700 p-2 rounded break-all text-white font-mono text-sm border border-gray-600">
                   {cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)}
                 </div>
-
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(
                       cleanLinhaDigitavel(boletoVisualizando.linhaDigitavel)
                     )
                   }}
-                  className="mt-2 bg-blue-600 px-3 py-1 rounded text-white"
+                  className="mt-2 bg-gray-600 hover:bg-gray-500 px-3 py-1.5 rounded text-white font-bold text-sm"
                 >
-                  Copiar
+                  Copiar Linha Digitável
                 </button>
-
               </div>
-
             )}
 
             {boletoVisualizando?.pdf && (

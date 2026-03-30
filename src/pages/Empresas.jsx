@@ -18,6 +18,7 @@ export default function Empresas() {
   const [fantasia, setFantasia] = useState("");
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
+  const [pix, setPix] = useState("");
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editId, setEditId] = useState("");
@@ -26,7 +27,11 @@ export default function Empresas() {
   const [editFantasia, setEditFantasia] = useState("");
   const [editCidade, setEditCidade] = useState("");
   const [editUf, setEditUf] = useState("");
+  const [editPix, setEditPix] = useState("");
   const [busca, setBusca] = useState("");
+
+  const isCpf = cnpj.replace(/\D/g, "").length <= 11 && cnpj.replace(/\D/g, "").length > 0;
+  const isEditCpf = editCnpj.replace(/\D/g, "").length <= 11 && editCnpj.replace(/\D/g, "").length > 0;
 
   useEffect(() => {
     carregar();
@@ -129,6 +134,7 @@ export default function Empresas() {
       fantasia,
       cidade,
       uf,
+      pix: isCpf ? pix : "",
     });
 
     setCnpj("");
@@ -136,6 +142,7 @@ export default function Empresas() {
     setFantasia("");
     setCidade("");
     setUf("");
+    setPix("");
 
     carregar();
   }
@@ -151,6 +158,7 @@ export default function Empresas() {
     setEditFantasia(empresa.fantasia || "");
     setEditCidade(empresa.cidade || "");
     setEditUf(empresa.uf || "");
+    setEditPix(empresa.pix || "");
     setIsEditModalOpen(true);
   }
 
@@ -178,6 +186,7 @@ export default function Empresas() {
       fantasia: editFantasia,
       cidade: editCidade,
       uf: editUf,
+      pix: isEditCpf ? editPix : "",
     });
 
     fecharEdicao();
@@ -237,6 +246,15 @@ export default function Empresas() {
           >
             Buscar Dados (CNPJ)
           </button>
+
+          {isCpf && (
+            <input
+              placeholder="Chave PIX (E-mail, CPF, Celular, etc)"
+              className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2 shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)] border-blue-500/50"
+              value={pix}
+              onChange={(e) => setPix(e.target.value)}
+            />
+          )}
 
           <input
             placeholder="Nome / Razão Social"
@@ -347,6 +365,15 @@ export default function Empresas() {
                 onChange={handleEditCNPJ}
               />
               <div /> {/* Espaçador */}
+
+              {isEditCpf && (
+                <input
+                  placeholder="Chave PIX (E-mail, CPF, Celular, etc)"
+                  className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2 shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)] border-blue-500/50"
+                  value={editPix}
+                  onChange={(e) => setEditPix(e.target.value)}
+                />
+              )}
 
               <input
                 placeholder="Nome / Razão Social"

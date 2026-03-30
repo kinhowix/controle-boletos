@@ -40,6 +40,7 @@ export default function NovoBoleto() {
   const [parcelas, setParcelas] = useState(1);
   const [vencimentosParcelas, setVencimentosParcelas] = useState({});
   const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
+  const [linhasPix, setLinhasPix] = useState({});
   const [pdfsBoletos, setPdfsBoletos] = useState({});
   const [tipoDespesa, setTipoDespesa] = useState("Fixa");
   const [salvando, setSalvando] = useState(false);
@@ -64,6 +65,17 @@ export default function NovoBoleto() {
 
     if (emp) {
       setEmpresaNome(emp.razao);
+      
+      // Auto-preencher PIX se houver
+      if (emp.pix) {
+        const novosPix = {};
+        for (let i = 0; i < parcelas; i++) {
+          novosPix[i] = emp.pix;
+        }
+        setLinhasPix(novosPix);
+      } else {
+        setLinhasPix({});
+      }
     }
   }
 
@@ -185,6 +197,7 @@ export default function NovoBoleto() {
           cnpj: cnpjNF,
           grupo,
           linhaDigitavel: linhasDigitaveis[index] || "",
+          linhaDigitavelPix: linhasPix[index] || "",
           pdf: pdfUrl,
           parcela: i,
           totalParcelas: parcelas,
@@ -297,6 +310,14 @@ export default function NovoBoleto() {
 
     setEmpresaId(emp.id);
     setEmpresaNome(emp.razao);
+
+    if (emp.pix) {
+      const novosPix = {};
+      for (let i = 0; i < parcelas; i++) {
+        novosPix[i] = emp.pix;
+      }
+      setLinhasPix(novosPix);
+    }
   }
 
   // =========================
@@ -585,6 +606,18 @@ export default function NovoBoleto() {
                             }
                           />
                         </div>
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="block mb-1 text-xs font-semibold text-blue-400">Linha Digitável do PIX</label>
+                        <input
+                          placeholder="Chave ou PIX Copia e Cola"
+                          className="bg-gray-800 p-2 rounded w-full text-white border border-blue-500/50 focus:border-blue-400 outline-none"
+                          value={linhasPix[i] || ""}
+                          onChange={(e) =>
+                            setLinhasPix({ ...linhasPix, [i]: e.target.value })
+                          }
+                        />
                       </div>
 
                       <label className="block mb-2 text-sm text-gray-400">
