@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [role, setRole] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [avisoVencimentoMostrado, setAvisoVencimentoMostrado] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
       } else {
         setUsuario(null);
         setRole(null);
+        setAvisoVencimentoMostrado(false);
       }
       setCarregando(false);
     });
@@ -35,7 +37,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ usuario, role, carregando }}>
+    <AuthContext.Provider value={{ usuario, role, carregando, avisoVencimentoMostrado, setAvisoVencimentoMostrado }}>
       {children}
     </AuthContext.Provider>
   );

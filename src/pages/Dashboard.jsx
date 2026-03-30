@@ -20,7 +20,7 @@ import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 export default function Dashboard() {
 
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, avisoVencimentoMostrado, setAvisoVencimentoMostrado } = useAuth();
 
   const [boletos, setBoletos] = useState([]);
 
@@ -106,12 +106,11 @@ export default function Dashboard() {
       });
 
       if (proximos.length > 0) {
-        // Verificar se já mostrou nesta sessão
-        const jaMostrou = sessionStorage.getItem("avisoVencimentoMostrado");
-        if (!jaMostrou) {
+        // Mostra o aviso apenas se ainda não foi exibido na sessão atual
+        if (!avisoVencimentoMostrado) {
           setBoletosProximos(proximos);
           setShowAvisoVencimento(true);
-          sessionStorage.setItem("avisoVencimentoMostrado", "true");
+          setAvisoVencimentoMostrado(true);
         }
       }
     }
