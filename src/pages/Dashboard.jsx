@@ -94,7 +94,7 @@ export default function Dashboard() {
   async function carregarBoletos() {
     const dados = await getBoletos();
     setBoletos(dados || []);
-    
+
     // Verificar boletos vencendo nos próximos 5 dias
     if (dados) {
       const hoje = new Date();
@@ -370,10 +370,12 @@ export default function Dashboard() {
     const dataVencFormatada = dataVenc ? dataVenc.toLocaleDateString() : "-";
     const valorFormatado = formatarReal(boleto.valor);
 
-    const mensagem = `Olá, lembrete de boleto!\n\n` +
+    const mensagem = `Olá Angelo, lembrete do boleto a vencer:\n\n` +
+      `Empresa *${boleto.empresa}*\n` +
+      `*Valor:* R$ ${valorFormatado}\n` +
       `*Vencimento:* ${dataVencFormatada}\n\n` +
       `Por favor, acesse o sistema para mais detalhes.\n` +
-        `https://controle-boletos-sable.vercel.app/login`;
+      `https://controle-boletos-sable.vercel.app/login`;
 
     const url = `https://wa.me/${waNumber.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
     window.open(url, "_blank");
@@ -818,19 +820,19 @@ export default function Dashboard() {
               <h2 className="text-gray-900 font-bold flex items-center gap-2">
                 <span className="text-xl">⚠️</span> Lembrete de Vencimento (Próximos 5 Dias)
               </h2>
-              <button 
+              <button
                 onClick={() => setShowAvisoVencimento(false)}
                 className="bg-black/20 hover:bg-black/40 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6">
               <p className="text-gray-300 text-sm mb-4">
                 Existem <strong>{boletosProximos.length}</strong> boletos vencendo em breve. Por favor, programe os pagamentos:
               </p>
-              
+
               <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin">
                 {boletosProximos.map(b => (
                   <div key={b.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-yellow-500/50 transition-colors">
@@ -840,7 +842,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-yellow-500 text-lg">R$ {formatarReal(b.valor)}</div>
-                      <button 
+                      <button
                         onClick={() => {
                           setShowAvisoVencimento(false);
                           enviarWhatsApp(b);
@@ -854,7 +856,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <button 
+              <button
                 onClick={() => setShowAvisoVencimento(false)}
                 className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95"
               >
