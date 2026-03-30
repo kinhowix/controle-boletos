@@ -78,7 +78,34 @@ export default function Dashboard() {
   async function carregarBoletos() {
     const dados = await getBoletos();
     setBoletos(dados || []);
+
+    // Verificar boletos vencendo nos próximos 5 dias
+    if (dados) {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const limite = new Date();
+      limite.setDate(hoje.getDate() + 5);
+      limite.setHours(23, 59, 59, 999);
+
+      const proximos = dados.filter(b => {
+        if (b.pago) return false;
+        const dataVenc = converterData(b.vencimento);
+        return dataVenc && dataVenc >= hoje && dataVenc <= limite;
+      });
+
+      if (proximos.length > 0) {
+        // Verificar se já mostrou nesta sessão
+        const jaMostrou = sessionStorage.getItem("avisoVencimentoMostrado");
+        if (!jaMostrou) {
+          setBoletosProximos(proximos);
+          setShowAvisoVencimento(true);
+          sessionStorage.setItem("avisoVencimentoMostrado", "true");
+        }
+      }
+    }
   }
+
+
 
   function focarInputEmpresa() {
     setTimeout(() => {
@@ -312,6 +339,30 @@ export default function Dashboard() {
     setModalBoleto(true);
 
   }
+
+  // ================================
+  // WHATSAPP
+  // ================================
+
+  function enviarWhatsApp(boleto) {
+    if (!waNumber) {
+      alert("Número de WhatsApp não configurado. Vá na página de Cadastro para definir o número.");
+      return;
+    }
+
+    const dataVenc = converterData(boleto.vencimento);
+    const dataVencFormatada = dataVenc ? dataVenc.toLocaleDateString() : "-";
+    const valorFormatado = formatarReal(boleto.valor);
+
+    const mensagem = `Olá, lembrete de boleto!\n\n` +
+      `*Vencimento:* ${dataVencFormatada}\n\n` +
+      `Por favor, acesse o sistema para mais detalhes.\n` +
+      `https://controle-boletos-sable.vercel.app/login`;
+
+    const url = `https://wa.me/${waNumber.replace(/\D/g, '')}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, "_blank");
+  }
+
 
   // ================================
   // LISTAS SEPARADAS
@@ -666,7 +717,7 @@ export default function Dashboard() {
               <label className="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">
                 PDF do Boleto
               </label>
-              
+
               {boletoEditando.pdf ? (
                 <div className="flex items-center justify-between mb-3 bg-green-900/20 p-2 rounded border border-green-700/30">
                   <div className="flex items-center gap-2">
@@ -729,6 +780,61 @@ export default function Dashboard() {
 
         </div>
 
+      )}
+
+      {/* MODAL AVISO DE VENCIMENTO (PRÓXIMOS 5 DIAS) */}
+      {showAvisoVencimento && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+          <div className="bg-gray-800 border border-yellow-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 p-4 flex justify-between items-center">
+              <h2 className="text-gray-900 font-bold flex items-center gap-2">
+                <span className="text-xl">⚠️</span> Lembrete de Vencimento (Próximos 5 Dias)
+              </h2>
+              <button
+                onClick={() => setShowAvisoVencimento(false)}
+                className="bg-black/20 hover:bg-black/40 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-300 text-sm mb-4">
+                Existem <strong>{boletosProximos.length}</strong> boletos vencendo em breve. Por favor, programe os pagamentos:
+              </p>
+
+              <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+                {boletosProximos.map(b => (
+                  <div key={b.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-yellow-500/50 transition-colors">
+                    <div>
+                      <div className="font-bold text-gray-100 group-hover:text-yellow-400 transition-colors">{b.empresa}</div>
+                      <div className="text-xs text-gray-400">Vencimento: {converterData(b.vencimento).toLocaleDateString()}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-yellow-500 text-lg">R$ {formatarReal(b.valor)}</div>
+                      <button
+                        onClick={() => {
+                          setShowAvisoVencimento(false);
+                          enviarWhatsApp(b);
+                        }}
+                        className="text-[10px] bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white px-2 py-1 rounded-md transition-all font-bold uppercase mt-1"
+                      >
+                        Enviar Whats
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowAvisoVencimento(false)}
+                className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL BOLETO */}
