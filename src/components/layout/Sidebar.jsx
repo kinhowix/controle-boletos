@@ -52,12 +52,7 @@ export default function Sidebar() {
             <Link to="/cadastro" className={linkClass("/cadastro")}>
               👤 Cadastro
             </Link>
-            <Link to="/migracao" className={linkClass("/migracao")}>
-              ⚙️ Migração
-            </Link>
-            <Link to="/migracao-linha" className={linkClass("/migracao-linha")}>
-              🧹 Limpar Linhas
-            </Link>
+
           </>
         )}
 
