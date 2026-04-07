@@ -415,90 +415,89 @@ export default function Dashboard() {
 
 
 
-          {/* RESUMO */}
+          {/* RESUMO E FILTROS */}
+          <div className="flex flex-col lg:flex-row gap-4 mb-6 items-stretch">
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
+            {/* RESUMO */}
+            <div className="grid grid-cols-3 gap-3 flex-1">
 
-            <div className="bg-gray-800 p-4 rounded">
-              Pago
-              <div className="text-green-400 text-xl">
-                R$ {formatarReal(totalPago)}
+              <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-sm flex flex-col justify-center">
+                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Pago</span>
+                <div className="text-green-400 text-lg font-bold truncate">
+                  R$ {formatarReal(totalPago)}
+                </div>
               </div>
+
+              <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-sm flex flex-col justify-center">
+                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Pendente</span>
+                <div className="text-yellow-400 text-lg font-bold truncate">
+                  R$ {formatarReal(totalPendente)}
+                </div>
+              </div>
+
+              <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-sm flex flex-col justify-center">
+                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Vencido</span>
+                <div className="text-red-400 text-lg font-bold truncate">
+                  R$ {formatarReal(totalVencido)}
+                </div>
+              </div>
+
             </div>
 
-            <div className="bg-gray-800 p-4 rounded">
-              Pendente no Período
-              <div className="text-yellow-400 text-xl">
-                R$ {formatarReal(totalPendente)}
+            {/* FILTROS */}
+            <div className="bg-gray-800 p-3 rounded-lg flex items-center gap-3 border border-gray-700 shadow-sm">
+              
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-[10px] font-bold uppercase mb-1 ml-1">Ano</span>
+                <select
+                  value={anoFiltro}
+                  onChange={(e) => setAnoFiltro(e.target.value)}
+                  className="bg-gray-700 p-1.5 rounded text-xs border border-gray-600 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Todos</option>
+                  {Array.from({ length: 15 }).map((_, i) => {
+                    const year = new Date().getFullYear() - 5 + i;
+                    return (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
-            </div>
 
-            <div className="bg-gray-800 p-4 rounded">
-              Vencido
-              <div className="text-red-400 text-xl">
-                R$ {formatarReal(totalVencido)}
+              <div className="flex flex-col">
+                <span className="text-gray-500 text-[10px] font-bold uppercase mb-1 ml-1">Mês</span>
+                <select
+                  value={mesFiltro}
+                  onChange={(e) => setMesFiltro(e.target.value)}
+                  className="bg-gray-700 p-1.5 rounded text-xs border border-gray-600 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Todos</option>
+                  {[
+                    "Janeiro", "Fevereiro", "Março", "Abril",
+                    "Maio", "Junho", "Julho", "Agosto",
+                    "Setembro", "Outubro", "Novembro", "Dezembro"
+                  ].map((nome, i) => (
+                    <option key={i} value={i + 1}>
+                      {nome}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div className="flex flex-col flex-1 min-w-[150px]">
+                <span className="text-gray-500 text-[10px] font-bold uppercase mb-1 ml-1">Empresa</span>
+                <input
+                  ref={inputEmpresaRef}
+                  placeholder="Pesquisar..."
+                  value={empresaFiltro}
+                  onChange={(e) => setEmpresaFiltro(e.target.value)}
+                  className="bg-gray-700 p-1.5 rounded text-xs border border-gray-600 focus:border-blue-500 outline-none w-full"
+                />
+              </div>
+
             </div>
-
-          </div>
-
-          {/* FILTROS */}
-
-          <div className="bg-gray-800 p-4 rounded-xl mb-6 flex gap-4">
-
-            <select
-              value={anoFiltro}
-              onChange={(e) =>
-                setAnoFiltro(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded"
-            >
-              <option value="">Todos os anos</option>
-              {Array.from({ length: 15 }).map((_, i) => {
-                const year = new Date().getFullYear() - 5 + i;
-                return (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                );
-              })}
-            </select>
-
-            <select
-              value={mesFiltro}
-              onChange={(e) =>
-                setMesFiltro(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded"
-            >
-
-              <option value="">
-                Todos os meses
-              </option>
-
-              {[
-                "Janeiro", "Fevereiro", "Março", "Abril",
-                "Maio", "Junho", "Julho", "Agosto",
-                "Setembro", "Outubro", "Novembro", "Dezembro"
-              ].map((nome, i) => (
-
-                <option key={i} value={i + 1}>
-                  {nome}
-                </option>
-
-              ))}
-
-            </select>
-
-            <input
-              ref={inputEmpresaRef}
-              placeholder="Filtrar empresa"
-              value={empresaFiltro}
-              onChange={(e) =>
-                setEmpresaFiltro(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded"
-            />
 
           </div>
 
@@ -525,26 +524,26 @@ export default function Dashboard() {
 
                     return (
                       <tr key={b.id} className="border-b border-gray-700">
-                        <td className="py-3">
+                        <td className="py-1.5">
                           <div className="max-w-[360px] overflow-x-auto whitespace-nowrap scrollbar-thin">
                             {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
                           </div>
                         </td>
-                        <td className="py-3">R$ {formatarReal(b.valor)}</td>
-                        <td className="py-3">{data ? data.toLocaleDateString() : ""}</td>
-                        <td className="py-3">
+                        <td className="py-1.5">R$ {formatarReal(b.valor)}</td>
+                        <td className="py-1.5">{data ? data.toLocaleDateString() : ""}</td>
+                        <td className="py-1.5">
                           <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
                             {b.numeroNF || "-"}
                           </div>
                         </td>
-                        <td className="py-3">
+                        <td className="py-1.5">
                           {isVencido ? (
                             <span className="text-red-400 font-bold">Vencido</span>
                           ) : (
                             <span className="text-yellow-400">Pendente</span>
                           )}
                         </td>
-                        <td className="flex gap-2 py-3 whitespace-nowrap">
+                        <td className="flex gap-2 py-1.5 whitespace-nowrap">
                           <button
                             onClick={() => iniciarBaixa(b)}
                             className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
@@ -609,21 +608,21 @@ export default function Dashboard() {
                     const dataVenc = converterData(b.vencimento);
                     return (
                       <tr key={b.id} className="border-b border-gray-700">
-                        <td className="py-3">
+                        <td className="py-1.5">
                           <div className="max-w-[200px] overflow-x-auto whitespace-nowrap scrollbar-thin">
                             {b.empresa} <span className="text-gray-400 text-xs ml-1">- {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}</span>
                           </div>
                         </td>
-                        <td className="py-3">R$ {formatarReal(b.valorPago || b.valor)}</td>
-                        <td className="py-3">
+                        <td className="py-1.5">R$ {formatarReal(b.valorPago || b.valor)}</td>
+                        <td className="py-1.5">
                           <div className="max-w-[100px] overflow-x-auto whitespace-nowrap scrollbar-thin">
                             {b.numeroNF || "-"}
                           </div>
                         </td>
-                        <td className="py-3">{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
-                        <td className="py-3">{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
-                        <td className="py-3">{b.banco || "-"}</td>
-                        <td className="flex gap-2 py-3 whitespace-nowrap">
+                        <td className="py-1.5">{dataVenc ? dataVenc.toLocaleDateString() : ""}</td>
+                        <td className="py-1.5">{b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</td>
+                        <td className="py-1.5">{b.banco || "-"}</td>
+                        <td className="flex gap-2 py-1.5 whitespace-nowrap">
                           <button
                             onClick={() => iniciarBaixa(b)}
                             className="bg-yellow-600 hover:bg-yellow-700 px-3 py-1.5 rounded text-xs font-medium text-white"
