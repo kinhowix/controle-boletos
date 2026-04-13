@@ -6,6 +6,8 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
 
 const ref = collection(db, "empresas");
@@ -25,17 +27,18 @@ export async function addEmpresa(empresa) {
 }
 
 export async function getEmpresaByCNPJ(cnpj) {
+  if (!cnpj) return null;
 
-  const snapshot = await getDocs(ref);
+  const q = query(ref, where("cnpj", "==", cnpj));
+  const snapshot = await getDocs(q);
 
-  const lista = snapshot.docs.map((doc) => ({
+  if (snapshot.empty) return null;
+
+  const doc = snapshot.docs[0];
+  return {
     id: doc.id,
     ...doc.data(),
-  }));
-
-  return lista.find(
-    (e) => e.cnpj === cnpj
-  );
+  };
 }
 
 export async function updateEmpresa(id, dados) {

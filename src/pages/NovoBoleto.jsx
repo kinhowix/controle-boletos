@@ -65,6 +65,7 @@ export default function NovoBoleto() {
 
     if (emp) {
       setEmpresaNome(emp.razao);
+      setCnpjNF(emp.cnpj || "");
       
       // Auto-preencher PIX se houver
       if (emp.pix) {
@@ -138,6 +139,11 @@ export default function NovoBoleto() {
 
     if (valorTotal <= 0) {
       alert("Informe um valor válido");
+      return;
+    }
+
+    if (parcelas < 1) {
+      alert("O número de parcelas deve ser pelo menos 1");
       return;
     }
 
