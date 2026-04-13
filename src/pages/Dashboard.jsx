@@ -411,12 +411,12 @@ export default function Dashboard() {
 
         <Header />
 
-        <div className="p-6">
+        <div className="p-2">
 
 
 
           {/* RESUMO E FILTROS */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-6 items-stretch">
+          <div className="flex flex-col lg:flex-row gap-4 mb-2 items-stretch">
 
             {/* RESUMO */}
             <div className="grid grid-cols-3 gap-3 flex-1">
@@ -503,7 +503,7 @@ export default function Dashboard() {
 
           {/* TABELA PENDENTES */}
 
-          <div className="bg-gray-800 p-6 rounded-xl mb-6">
+          <div className="bg-gray-800 p-4 rounded-xl mb-1">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
             <div className="max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
@@ -590,7 +590,7 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl">
             <h2 className="text-xl font-bold mb-4 text-green-400">Histórico de Pagamentos</h2>
-            <div className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+            <div className="max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">

@@ -194,9 +194,11 @@ export default function Notas() {
       setBcCnpj(cnpjExtraido);
       setBcNumero(numeroNFExtraido);
 
-      const ano = "20" + val.substring(2, 4);
-      const mes = val.substring(4, 6);
-      setBcData(`${ano}-${mes}-01`);
+      const hoje = new Date();
+      const dataFormatada = hoje.getFullYear() + "-" + 
+        String(hoje.getMonth() + 1).padStart(2, "0") + "-" + 
+        String(hoje.getDate()).padStart(2, "0");
+      setBcData(dataFormatada);
 
       // Tenta buscar empresa cadastrada
       const emp = await getEmpresaByCNPJ(cnpjExtraido);
