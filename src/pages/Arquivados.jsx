@@ -141,7 +141,13 @@ export default function Arquivados() {
     setModalBoleto(true);
   }
 
-  const arquivados = boletosFiltrados.filter(b => b.arquivado);
+  const arquivados = boletosFiltrados
+    .filter((b) => b.arquivado)
+    .sort((a, b) => {
+      const dataA = a.dataPagamento ? new Date(a.dataPagamento + "T12:00:00") : new Date(0);
+      const dataB = b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00") : new Date(0);
+      return dataB - dataA;
+    });
 
   return (
 

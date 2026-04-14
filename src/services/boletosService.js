@@ -6,6 +6,8 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 
 const ref = collection(db, "boletos");
@@ -35,17 +37,18 @@ export async function updateBoleto(id, data) {
   await updateDoc(doc(db, "boletos", id), data);
 }
 
-// 🔎 verificar duplicidade
+// 🔎 verificar duplicidade eficiente
 
 export async function existeNota(numeroNF, cnpj) {
+  if (!numeroNF) return false;
 
-  const snapshot = await getDocs(ref);
-
-  const lista = snapshot.docs.map((d) => d.data());
-
-  return lista.find(
-    (b) =>
-      b.numeroNF === numeroNF &&
-      b.cnpj === cnpj
+  const q = query(
+    ref, 
+    where("numeroNF", "==", numeroNF),
+    where("cnpj", "==", cnpj || "")
   );
+
+  const snapshot = await getDocs(q);
+
+  return !snapshot.empty;
 }
