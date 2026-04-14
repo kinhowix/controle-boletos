@@ -66,6 +66,11 @@ export default function Notas() {
   const [editData, setEditData] = useState("");
 
   const [bcData, setBcData] = useState("");
+  
+  // Estados para Importação XML com Confirmação de Data
+  const [modalXML, setModalXML] = useState(false);
+  const [xmlData, setXmlData] = useState(null);
+  const [xmlDate, setXmlDate] = useState("");
 
   useEffect(() => {
     carregar();
@@ -146,6 +151,42 @@ export default function Notas() {
         return;
       }
 
+      // Preparar dados para o modal de confirmação
+      const hoje = new Date();
+      const dataFormatada = hoje.getFullYear() + "-" + 
+        String(hoje.getMonth() + 1).padStart(2, "0") + "-" + 
+        String(hoje.getDate()).padStart(2, "0");
+
+      setXmlData({
+        numero,
+        valor,
+        empresa,
+        cnpj,
+        cidade,
+        uf
+      });
+      setXmlDate(dataFormatada);
+      setModalXML(true);
+      
+      e.target.value = "";
+
+    } catch (erro) {
+      console.error("Erro ao importar XML:", erro);
+      alert(erro.message || "Erro ao processar o arquivo XML.");
+      e.target.value = "";
+    }
+
+  }
+
+  async function salvarXML() {
+    if (!xmlDate) {
+      alert("Por favor, informe a data da nota.");
+      return;
+    }
+
+    try {
+      const { numero, valor, empresa, cnpj, cidade, uf } = xmlData;
+
       let emp = await getEmpresaByCNPJ(cnpj);
 
       if (!emp) {
@@ -162,20 +203,20 @@ export default function Notas() {
         valor: Number(valor),
         empresa,
         cnpj,
-        data: "", // Deixa vazio para edição posterior, conforme solicitado
+        data: xmlDate,
         usadaEmBoleto: false
       });
 
       alert("Nota aceita com sucesso!");
-      e.target.value = "";
+      setModalXML(false);
+      setXmlData(null);
+      setXmlDate("");
       carregar();
 
     } catch (erro) {
-      console.error("Erro ao importar XML:", erro);
-      alert(erro.message || "Erro ao processar o arquivo XML.");
-      e.target.value = "";
+      console.error("Erro ao salvar XML:", erro);
+      alert("Erro ao salvar a nota.");
     }
-
   }
 
   // =========================
@@ -972,6 +1013,47 @@ export default function Notas() {
                 className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold text-white transition-colors"
               >
                 Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIRMAÇÃO XML */}
+      {modalXML && xmlData && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl w-96 border border-gray-700">
+            <h2 className="text-xl mb-4 font-bold text-blue-400">Confirmar Importação XML</h2>
+
+            <div className="bg-gray-900/50 p-4 rounded-lg mb-4 space-y-2 border border-gray-700">
+              <p className="text-sm text-gray-400">Nota: <span className="text-white font-medium">{xmlData.numero}</span></p>
+              <p className="text-sm text-gray-400">Empresa: <span className="text-white font-medium">{xmlData.empresa}</span></p>
+              <p className="text-sm text-gray-400">Valor: <span className="text-white font-medium">R$ {formatarReal(xmlData.valor)}</span></p>
+            </div>
+
+            <label className="block text-gray-400 text-sm mb-1">Data da Nota</label>
+            <input
+              type="date"
+              className="bg-gray-700 p-2 rounded w-full mb-4 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+              value={xmlDate}
+              onChange={(e) => setXmlDate(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setModalXML(false);
+                  setXmlData(null);
+                }}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-semibold text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarXML}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold text-white transition-colors"
+              >
+                Confirmar Nota
               </button>
             </div>
           </div>
