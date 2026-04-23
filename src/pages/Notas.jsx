@@ -31,9 +31,9 @@ export default function Notas() {
 
   const [modal, setModal] = useState(false);
 
-  const [vencimento, setVencimento] = useState("");
   const [parcelas, setParcelas] = useState(1);
   const [vencimentosParcelas, setVencimentosParcelas] = useState({});
+  const [valoresParcelas, setValoresParcelas] = useState({});
   const [linhasDigitaveis, setLinhasDigitaveis] = useState({});
   const [pdfsBoletos, setPdfsBoletos] = useState({});
 
@@ -75,6 +75,30 @@ export default function Notas() {
   useEffect(() => {
     carregar();
   }, []);
+
+  // Inicializar valores das parcelas ao abrir modal ou mudar quantidade
+  useEffect(() => {
+    if (modal) {
+      const notasSelecionadas = notas.filter((n) => selecionadas.includes(n.id));
+      const total = notasSelecionadas.reduce((acc, n) => acc + Number(n.valor), 0);
+      
+      const valorBase = Math.floor((total / parcelas) * 100) / 100;
+      const novosValores = {};
+      let totalAcumulado = 0;
+
+      for (let i = 0; i < parcelas; i++) {
+        if (i === parcelas - 1) {
+          // Última parcela pega o resto para não perder centavos
+          novosValores[i] = formatarReal(total - totalAcumulado);
+        } else {
+          const v = valorBase;
+          novosValores[i] = formatarReal(v);
+          totalAcumulado += v;
+        }
+      }
+      setValoresParcelas(novosValores);
+    }
+  }, [parcelas, modal]);
 
   async function carregar() {
 
@@ -442,8 +466,8 @@ export default function Notas() {
         return;
       }
 
-      if (!vencimento) {
-        alert("Informe o vencimento");
+      if (!vencimentosParcelas[0]) {
+        alert("Informe o vencimento da primeira parcela");
         return;
       }
 
@@ -455,9 +479,7 @@ export default function Notas() {
       );
 
       const arrayNumerosNF = notasSelecionadas.map((n) => n.numeroNF).join(", ");
-      const descricao = ""; // Redundante com o campo NF, removido por solicitação do usuário
-
-      const valorParcela = total / parcelas;
+      const descricao = ""; 
 
       let primeiroBoletoId = null;
 
@@ -492,14 +514,15 @@ export default function Notas() {
           const [vAno, vMes, vDia] = vencimentosParcelas[index].split("-");
           dataParcela = new Date(vAno, vMes - 1, vDia);
         } else {
-          dataParcela = new Date(vencimento + "T12:00:00");
+          const [vAno, vMes, vDia] = vencimentosParcelas[0].split("-");
+          dataParcela = new Date(vAno, vMes - 1, vDia);
           dataParcela.setMonth(dataParcela.getMonth() + index);
         }
 
 
         const boletoId = await addBoleto({
           empresa,
-          valor: valorParcela,
+          valor: parseReal(valoresParcelas[index]) || 0,
           descricao,
           vencimento: dataParcela,
           linhaDigitavel: linhasDigitaveis[index] || "",
@@ -714,39 +737,49 @@ export default function Notas() {
               Gerar boletos
             </h2>
 
-            <input
-              type="date"
-              value={vencimento}
-              onChange={(e) =>
-                setVencimento(e.target.value)
-              }
-              className="bg-gray-700 p-2 rounded w-full mb-3"
-            />
-
-            <input
-              type="number"
-              placeholder="Parcelas"
-              value={parcelas}
-              onChange={(e) =>
-                setParcelas(Number(e.target.value))
-              }
-              className="bg-gray-700 p-2 rounded w-full mb-3"
-            />
+            <div className="flex gap-2 items-end mb-3">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-400 mb-1">Número de Parcelas</label>
+                <input
+                  type="number"
+                  placeholder="Parcelas"
+                  value={parcelas}
+                  min="1"
+                  onChange={(e) =>
+                    setParcelas(Math.max(1, Number(e.target.value)))
+                  }
+                  className="bg-gray-700 p-2 rounded w-full border border-gray-600 text-white"
+                />
+              </div>
+            </div>
 
             <div className="mb-4 space-y-4 max-h-60 overflow-y-auto pr-2">
               {Array.from({ length: parcelas || 1 }).map((_, i) => (
                 <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
                   <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
-                  <div className="grid grid-cols-1 gap-2 mb-3">
-                    <label className="text-[10px] text-gray-400 uppercase tracking-wider">Vencimento da Parcela</label>
-                    <input
-                      type="date"
-                      value={vencimentosParcelas[i] || ""}
-                      onChange={(e) =>
-                        setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value })
-                      }
-                      className="bg-gray-800 p-2 rounded w-full border border-gray-600 text-white"
-                    />
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div>
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider">Vencimento</label>
+                      <input
+                        type="date"
+                        value={vencimentosParcelas[i] || ""}
+                        onChange={(e) =>
+                          setVencimentosParcelas({ ...vencimentosParcelas, [i]: e.target.value })
+                        }
+                        className="bg-gray-800 p-2 rounded w-full border border-gray-600 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider">Valor (R$)</label>
+                      <input
+                        type="text"
+                        value={valoresParcelas[i] || ""}
+                        onChange={(e) =>
+                          setValoresParcelas({ ...valoresParcelas, [i]: aplicarMascaraReal(e.target.value) })
+                        }
+                        className="bg-gray-800 p-2 rounded w-full border border-gray-600 text-white"
+                      />
+                    </div>
                   </div>
                   <input
                     placeholder="Linha digitável (opcional)"
