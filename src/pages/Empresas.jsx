@@ -224,13 +224,13 @@ export default function Empresas() {
       </h1>
 
       {/* FORM */}
-      <div className="bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
+      <div className="bg-gray-800 p-4 md:p-6 rounded-2xl shadow-lg mb-8">
 
-         <div className="grid grid-cols-2 gap-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <input
             placeholder="CPF / CNPJ"
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white text-sm"
             value={cnpj}
             onChange={handleCNPJ}
           />
@@ -238,7 +238,7 @@ export default function Empresas() {
           <button
             onClick={buscarCNPJ}
             disabled={cnpj.replace(/\D/g, "").length < 14}
-            className={`rounded text-white transition ${
+            className={`rounded text-white transition py-2 text-sm font-bold ${
               cnpj.replace(/\D/g, "").length < 14 
                 ? "bg-gray-600 cursor-not-allowed" 
                 : "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20"
@@ -250,7 +250,7 @@ export default function Empresas() {
           {isCpf && (
             <input
               placeholder="Chave PIX (E-mail, CPF, Celular, etc)"
-              className="bg-gray-700 border border-gray-600 p-2 rounded text-white col-span-2 shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)] border-blue-500/50"
+              className="bg-gray-700 border border-gray-600 p-2 rounded text-white md:col-span-2 shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)] border-blue-500/50 text-sm"
               value={pix}
               onChange={(e) => setPix(e.target.value)}
             />
@@ -258,21 +258,21 @@ export default function Empresas() {
 
           <input
             placeholder="Nome / Razão Social"
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white text-sm"
             value={razao}
             onChange={(e) => setRazao(e.target.value)}
           />
 
           <input
             placeholder="Apelido / Fantasia"
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white text-sm"
             value={fantasia}
             onChange={(e) => setFantasia(e.target.value)}
           />
 
           <input
             placeholder="Cidade"
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white text-sm"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
           />
@@ -280,7 +280,7 @@ export default function Empresas() {
           <input
             placeholder="UF"
             maxLength={2}
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white"
+            className="bg-gray-700 border border-gray-600 p-2 rounded text-white text-sm"
             value={uf}
             onChange={(e) => setUf(e.target.value)}
           />
@@ -289,7 +289,7 @@ export default function Empresas() {
 
         <button
           onClick={salvar}
-          className="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-full text-white font-bold transition-all shadow-lg shadow-green-900/20"
+          className="mt-6 bg-green-600 hover:bg-green-700 w-full md:w-auto px-8 py-3 rounded-full text-white font-bold transition-all shadow-lg shadow-green-900/20"
         >
           Salvar Cadastro
         </button>
@@ -297,17 +297,50 @@ export default function Empresas() {
       </div>
 
       {/* LISTA */}
-      <div className="bg-gray-800 p-6 rounded-2xl shadow-lg">
+      <div className="bg-gray-800 p-4 md:p-6 rounded-2xl shadow-lg">
 
-        <div className="max-h-[240px] overflow-y-auto pr-2">
+        <div className="max-h-[500px] md:max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
           <input
             placeholder="Buscar por empresa ou CNPJ..."
-            className="bg-gray-700 border border-gray-600 p-2 rounded text-white mb-4 w-full"
+            className="bg-gray-700 border border-gray-600 p-3 md:p-2 rounded text-white mb-4 w-full text-sm"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
-          <table className="w-full text-sm">
+          
+          {/* VISTA MOBILE (CASCATA) */}
+          <div className="lg:hidden space-y-3">
+            {empresasFiltradas.map((e) => (
+              <div key={e.id} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700 shadow-sm uppercase">
+                <div className="flex justify-between items-start mb-2 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-gray-100 truncate text-sm">{e.fantasia || e.razao}</div>
+                    <div className="text-[10px] text-gray-500">{e.cnpj}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-gray-400 font-bold">{e.cidade} - {e.uf}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2 border-t border-gray-800 justify-end">
+                  <button
+                    onClick={() => abrirEdicao(e)}
+                    className="bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded text-white text-[10px] font-bold"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleExcluir(e.id)}
+                    disabled={role !== "admin"}
+                    className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-4 py-1.5 rounded text-white text-[10px] font-bold`}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
+          {/* VISTA DESKTOP (TABELA) */}
+          <table className="hidden lg:table w-full text-sm">
             <thead className="sticky top-0 bg-gray-800 z-10">
               <tr className="text-left border-b border-gray-600">
                 <th className="pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">CPF / CNPJ</th>
@@ -340,12 +373,10 @@ export default function Empresas() {
                     >
                       Excluir
                     </button>
-
                   </td>
                 </tr>
               ))}
             </tbody>
-
           </table>
         </div>
 
