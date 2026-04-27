@@ -570,6 +570,21 @@ export default function Notas() {
 
   }
 
+  if (role !== "admin") {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
+          <p className="text-gray-400">Você não tem permissão para gerenciar notas fiscais.</p>
+          <a href="/" className="mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full font-bold transition-all shadow-lg active:scale-95">
+            Voltar ao Início
+          </a>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
 
     <MainLayout>

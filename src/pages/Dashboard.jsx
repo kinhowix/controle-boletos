@@ -419,7 +419,7 @@ export default function Dashboard() {
           <div className="flex flex-col lg:flex-row gap-4 mb-2 items-stretch">
 
             {/* RESUMO */}
-            <div className="grid grid-cols-3 gap-3 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
 
               <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 shadow-sm flex flex-col justify-center">
                 <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Pago</span>
@@ -445,7 +445,7 @@ export default function Dashboard() {
             </div>
 
             {/* FILTROS */}
-            <div className="bg-gray-800 p-3 rounded-lg flex items-center gap-3 border border-gray-700 shadow-sm">
+            <div className="bg-gray-800 p-3 rounded-lg flex flex-wrap md:flex-nowrap items-end gap-3 border border-gray-700 shadow-sm">
 
               <div className="flex flex-col">
                 <span className="text-gray-500 text-[10px] font-bold uppercase mb-1 ml-1">Ano</span>
@@ -505,7 +505,88 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-4 rounded-xl mb-1">
             <h2 className="text-xl font-bold mb-4 text-yellow-400">Boletos Pendentes / Vencidos</h2>
-            <div className="max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
+            
+            {/* VISTA MOBILE (CASCATA) */}
+            <div className="lg:hidden space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              {pendentesEVencidos.map((b) => {
+                const data = converterData(b.vencimento);
+                const isVencido = data && data < hoje;
+
+                return (
+                  <div key={b.id} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700 shadow-sm">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-100 truncate text-sm">{b.empresa}</div>
+                        <div className="text-[10px] text-gray-500 truncate">
+                          {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-yellow-400 text-sm">R$ {formatarReal(b.valor)}</div>
+                        <div className="text-[10px] text-gray-400">{data ? data.toLocaleDateString() : ""}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+                      <div className="flex flex-col">
+                        {isVencido ? (
+                          <span className="text-red-400 text-[10px] font-bold uppercase">Vencido</span>
+                        ) : (
+                          <span className="text-yellow-400 text-[10px] font-bold uppercase">Pendente</span>
+                        )}
+                        <span className="text-gray-500 text-[9px]">NF: {b.numeroNF || "-"}</span>
+                      </div>
+                      
+                      <div className="flex gap-1.5 flex-wrap justify-end">
+                        <button
+                          onClick={() => iniciarBaixa(b)}
+                          className="bg-green-600 hover:bg-green-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm"
+                          title="Dar baixa"
+                        >
+                          ✔
+                        </button>
+                        
+                        {role === "admin" && (
+                          <>
+                            <button
+                              onClick={() => abrirEditar(b)}
+                              className="bg-blue-600 hover:bg-blue-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm"
+                              title="Editar"
+                            >
+                              ✏
+                            </button>
+                            <button
+                              onClick={() => excluir(b)}
+                              className="bg-red-600 hover:bg-red-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm"
+                              title="Excluir"
+                            >
+                              🗑
+                            </button>
+                          </>
+                        )}
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm" title="Visualizar">📄</button>
+                        
+                        {role === "admin" && (
+                          <button
+                            onClick={() => enviarWhatsApp(b)}
+                            className="bg-green-500 hover:bg-green-600 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm"
+                            title="WhatsApp"
+                          >
+                            <span className="text-[10px]">W</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {pendentesEVencidos.length === 0 && (
+                <div className="text-center py-6 text-gray-400 text-sm">Nenhum boleto pendente.</div>
+              )}
+            </div>
+
+            {/* VISTA DESKTOP (TABELA) */}
+            <div className="hidden lg:block max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
@@ -543,35 +624,45 @@ export default function Dashboard() {
                             <span className="text-yellow-400">Pendente</span>
                           )}
                         </td>
-                        <td className="flex gap-2 py-1.5 whitespace-nowrap">
+                        <td className="flex gap-2 py-2 whitespace-nowrap">
                           <button
                             onClick={() => iniciarBaixa(b)}
-                            className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white"
+                            className="bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm"
                             title="Dar baixa"
                           >
                             ✔
                           </button>
-                          <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
-                          <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button
-                            onClick={() => excluir(b)}
-                            disabled={role !== "admin"}
-                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
-                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
-                          >
-                            🗑
-                          </button>
-                          <button
-                            onClick={() => enviarWhatsApp(b)}
-                            className="bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-xs font-medium text-white"
-                            title="Enviar lembrete por WhatsApp"
-                          >
-                            <span className="flex items-center gap-1">
-                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.148-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                              </svg>
-                            </span>
-                          </button>
+
+                          {role === "admin" && (
+                            <>
+                              <button
+                                onClick={() => abrirEditar(b)}
+                                className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm"
+                                title="Editar"
+                              >
+                                ✏
+                              </button>
+                              <button
+                                onClick={() => excluir(b)}
+                                className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm"
+                                title="Excluir"
+                              >
+                                🗑
+                              </button>
+                            </>
+                          )}
+
+                          <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm" title="Visualizar">📄</button>
+
+                          {role === "admin" && (
+                            <button
+                              onClick={() => enviarWhatsApp(b)}
+                              className="bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm"
+                              title="WhatsApp"
+                            >
+                              WhatsApp
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -590,7 +681,70 @@ export default function Dashboard() {
 
           <div className="bg-gray-800 p-6 rounded-xl">
             <h2 className="text-xl font-bold mb-4 text-green-400">Histórico de Pagamentos</h2>
-            <div className="max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
+
+            {/* VISTA MOBILE (CASCATA) */}
+            <div className="lg:hidden space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              {pagos.map((b) => {
+                const dataVenc = converterData(b.vencimento);
+                return (
+                  <div key={b.id} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700 shadow-sm">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-100 truncate text-sm">{b.empresa}</div>
+                        <div className="text-[10px] text-gray-500 truncate">
+                          {b.descricao && !b.descricao.startsWith("Fatura NF") ? b.descricao : "-"}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-400 text-sm">R$ {formatarReal(b.valorPago || b.valor)}</div>
+                        <div className="text-[10px] text-gray-400">Pago em: {b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+                      <div className="flex flex-col">
+                        <span className="text-gray-400 text-[10px]">Banco: {b.banco || "-"}</span>
+                        <span className="text-gray-500 text-[9px]">Venc: {dataVenc ? dataVenc.toLocaleDateString() : ""} | NF: {b.numeroNF || "-"}</span>
+                      </div>
+
+                      <div className="flex gap-1.5 flex-wrap justify-end">
+                        <button
+                          onClick={() => iniciarBaixa(b)}
+                          className="bg-yellow-600 hover:bg-yellow-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white"
+                          title="Desmarcar pago"
+                        >
+                          ↩
+                        </button>
+                        <button
+                          onClick={() => arquivar(b)}
+                          className="bg-gray-600 hover:bg-gray-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white"
+                          title="Arquivar"
+                        >
+                          📁
+                        </button>
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white" title="Visualizar">📄</button>
+                        
+                        {role === "admin" && (
+                          <button
+                            onClick={() => excluir(b)}
+                            className="bg-red-600 hover:bg-red-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white"
+                            title="Excluir"
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {pagos.length === 0 && (
+                <div className="text-center py-6 text-gray-400 text-sm">Nenhum boleto pago.</div>
+              )}
+            </div>
+
+            {/* VISTA DESKTOP (TABELA) */}
+            <div className="hidden lg:block max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
@@ -638,14 +792,16 @@ export default function Dashboard() {
                             📁
                           </button>
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button
-                            onClick={() => excluir(b)}
-                            disabled={role !== "admin"}
-                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`}
-                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
-                          >
-                            🗑
-                          </button>
+                          
+                          {role === "admin" && (
+                            <button
+                              onClick={() => excluir(b)}
+                              className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white"
+                              title="Excluir"
+                            >
+                              🗑
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -819,42 +975,42 @@ export default function Dashboard() {
 
       {/* MODAL AVISO DE VENCIMENTO (PRÓXIMOS 5 DIAS) */}
       {showAvisoVencimento && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-3 md:p-4 backdrop-blur-sm">
           <div className="bg-gray-800 border border-yellow-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 p-4 flex justify-between items-center">
-              <h2 className="text-gray-900 font-bold flex items-center gap-2">
-                <span className="text-xl">⚠️</span> Lembrete de Vencimento (Próximos 5 Dias)
+            <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 p-3 md:p-4 flex justify-between items-center">
+              <h2 className="text-gray-900 font-bold flex items-center gap-2 text-sm md:text-base">
+                <span className="text-lg md:text-xl">⚠️</span> Vencimento (Próximos 5 Dias)
               </h2>
               <button
                 onClick={() => setShowAvisoVencimento(false)}
-                className="bg-black/20 hover:bg-black/40 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors"
+                className="bg-black/20 hover:bg-black/40 text-gray-900 rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center font-bold transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-6">
-              <p className="text-gray-300 text-sm mb-4">
+            <div className="p-4 md:p-6">
+              <p className="text-gray-300 text-[11px] md:text-sm mb-4">
                 Existem <strong>{boletosProximos.length}</strong> boletos vencendo em breve. Por favor, programe os pagamentos:
               </p>
 
-              <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+              <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 md:space-y-3 pr-2 scrollbar-thin">
                 {boletosProximos.map(b => (
-                  <div key={b.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-yellow-500/50 transition-colors">
-                    <div>
-                      <div className="font-bold text-gray-100 group-hover:text-yellow-400 transition-colors">{b.empresa}</div>
-                      <div className="text-xs text-gray-400">Vencimento: {converterData(b.vencimento).toLocaleDateString()}</div>
+                  <div key={b.id} className="bg-gray-900/50 border border-gray-700 p-2 md:p-3 rounded-xl flex justify-between items-center group hover:border-yellow-500/50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-gray-100 group-hover:text-yellow-400 transition-colors truncate text-xs md:text-sm">{b.empresa}</div>
+                      <div className="text-[10px] text-gray-400">Venc: {converterData(b.vencimento).toLocaleDateString()}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-yellow-500 text-lg">R$ {formatarReal(b.valor)}</div>
+                    <div className="text-right ml-2">
+                      <div className="font-bold text-yellow-500 text-sm md:text-lg">R$ {formatarReal(b.valor)}</div>
                       <button
                         onClick={() => {
                           setShowAvisoVencimento(false);
                           enviarWhatsApp(b);
                         }}
-                        className="text-[10px] bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white px-2 py-1 rounded-md transition-all font-bold uppercase mt-1"
+                        className="text-[9px] md:text-[10px] bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white px-2 py-1 rounded-md transition-all font-bold uppercase mt-1"
                       >
-                        Enviar Whats
+                        Whats
                       </button>
                     </div>
                   </div>
@@ -863,7 +1019,7 @@ export default function Dashboard() {
 
               <button
                 onClick={() => setShowAvisoVencimento(false)}
-                className="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95"
+                className="w-full mt-4 md:mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 md:py-3 rounded-xl transition-all shadow-lg active:scale-95 text-sm md:text-base"
               >
                 Entendido
               </button>

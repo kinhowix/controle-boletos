@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
+import { useAuth } from "../context/AuthContext";
 
 import { addBoleto, existeNota } from "../services/boletosService";
 
@@ -19,6 +20,7 @@ import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
 export default function NovoBoleto() {
 
   const navigate = useNavigate();
+  const { role } = useAuth();
 
   const [empresas, setEmpresas] = useState([]);
   const [buscaEmpresa, setBuscaEmpresa] = useState("");
@@ -336,6 +338,28 @@ export default function NovoBoleto() {
       .includes(buscaEmpresa.toLowerCase())
   );
 
+  if (role !== "admin") {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 bg-gray-900 text-white min-h-screen">
+          <Header />
+          <div className="p-6 flex flex-col items-center justify-center h-[calc(100vh-80px)]">
+            <div className="text-6xl mb-4">🔒</div>
+            <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
+            <p className="text-gray-400">Você não tem permissão para acessar esta página.</p>
+            <button
+              onClick={() => navigate("/")}
+              className="mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full font-bold transition-all shadow-lg active:scale-95"
+            >
+              Voltar ao Início
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex">
 
@@ -517,11 +541,11 @@ export default function NovoBoleto() {
 
             {/* FORM BOLETO */}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <input
                 placeholder="Valor total (R$)"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={valor}
                 onChange={(e) =>
                   setValor(aplicarMascaraReal(e.target.value))
@@ -530,7 +554,7 @@ export default function NovoBoleto() {
 
               <input
                 type="date"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={vencimento}
                 onChange={(e) =>
                   setVencimento(e.target.value)
@@ -539,7 +563,7 @@ export default function NovoBoleto() {
 
               <input
                 placeholder="Descrição"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={descricao}
                 onChange={(e) =>
                   setDescricao(e.target.value)
@@ -548,7 +572,7 @@ export default function NovoBoleto() {
 
               <input
                 placeholder="Número NF (opcional)"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={numeroNF}
                 onChange={(e) =>
                   setNumeroNF(e.target.value)
@@ -557,7 +581,7 @@ export default function NovoBoleto() {
 
               <input
                 placeholder="Grupo de notas"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={grupo}
                 onChange={(e) =>
                   setGrupo(e.target.value)
@@ -567,7 +591,7 @@ export default function NovoBoleto() {
               <input
                 type="number"
                 placeholder="Parcelas"
-                className="bg-gray-700 p-2 rounded"
+                className="bg-gray-700 p-2 rounded text-sm"
                 value={parcelas}
                 onChange={(e) =>
                   setParcelas(
@@ -576,21 +600,21 @@ export default function NovoBoleto() {
                 }
               />
 
-              <div className="col-span-2">
+              <div className="col-span-1 md:col-span-2">
                 <label className="block mb-2 text-sm text-gray-300 font-semibold">
                   Dados por Parcela (Linha Digitável e PDF)
                 </label>
-                <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
                   {Array.from({ length: parcelas || 1 }).map((_, i) => (
                     <div key={i} className="bg-gray-700/50 p-4 rounded border border-gray-600">
                       <h3 className="text-sm font-semibold mb-3 text-gray-200">Parcela {i + 1}</h3>
                       
-                      <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
                           <label className="block mb-1 text-xs text-gray-400">Vencimento Desta Parcela</label>
                           <input
                             type="date"
-                            className={`bg-gray-800 p-2 rounded w-full text-white border border-gray-600 ${
+                            className={`bg-gray-800 p-2 rounded w-full text-white border border-gray-600 text-sm ${
                               (parcelas === 1 && i === 0) ? "opacity-50 cursor-not-allowed" : ""
                             }`}
                             value={(parcelas === 1 && i === 0) ? vencimento : (vencimentosParcelas[i] || "")}
@@ -605,7 +629,7 @@ export default function NovoBoleto() {
                           <label className="block mb-1 text-xs text-gray-400">Linha Digitável (Opcional)</label>
                           <input
                             placeholder="Digitável..."
-                            className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600"
+                            className="bg-gray-800 p-2 rounded w-full text-white border border-gray-600 text-sm"
                             value={linhasDigitaveis[i] || ""}
                             onChange={(e) =>
                               setLinhasDigitaveis({ ...linhasDigitaveis, [i]: cleanLinhaDigitavel(e.target.value) })
@@ -618,7 +642,7 @@ export default function NovoBoleto() {
                         <label className="block mb-1 text-xs font-semibold text-blue-400">Linha Digitável do PIX</label>
                         <input
                           placeholder="Chave ou PIX Copia e Cola"
-                          className="bg-gray-800 p-2 rounded w-full text-white border border-blue-500/50 focus:border-blue-400 outline-none"
+                          className="bg-gray-800 p-2 rounded w-full text-white border border-blue-500/50 focus:border-blue-400 outline-none text-sm"
                           value={linhasPix[i] || ""}
                           onChange={(e) =>
                             setLinhasPix({ ...linhasPix, [i]: e.target.value })
@@ -632,7 +656,7 @@ export default function NovoBoleto() {
                       <input
                         type="file"
                         accept="application/pdf"
-                        className="bg-gray-800 p-2 rounded w-full text-sm text-gray-300 border border-gray-600"
+                        className="bg-gray-800 p-2 rounded w-full text-xs text-gray-300 border border-gray-600"
                         onChange={(e) =>
                           setPdfsBoletos({ ...pdfsBoletos, [i]: e.target.files[0] })
                         }

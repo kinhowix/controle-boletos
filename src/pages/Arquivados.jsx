@@ -180,14 +180,14 @@ export default function Arquivados() {
 
           {/* FILTROS */}
 
-          <div className="bg-gray-800 p-4 rounded-xl mb-6 flex gap-4">
+          <div className="bg-gray-800 p-4 rounded-xl mb-6 flex flex-wrap gap-4 shadow-sm border border-gray-700">
 
             <select
               value={anoFiltro}
               onChange={(e) =>
                 setAnoFiltro(e.target.value)
               }
-              className="bg-gray-700 p-2 rounded"
+              className="bg-gray-700 p-2 rounded text-sm flex-1 min-w-[120px]"
             >
               <option value="">Todos os anos</option>
               {Array.from({ length: 15 }).map((_, i) => {
@@ -205,7 +205,7 @@ export default function Arquivados() {
               onChange={(e) =>
                 setMesFiltro(e.target.value)
               }
-              className="bg-gray-700 p-2 rounded"
+              className="bg-gray-700 p-2 rounded text-sm flex-1 min-w-[120px]"
             >
 
               <option value="">
@@ -232,17 +232,74 @@ export default function Arquivados() {
               onChange={(e) =>
                 setEmpresaFiltro(e.target.value)
               }
-              className="bg-gray-700 p-2 rounded"
+              className="bg-gray-700 p-2 rounded text-sm flex-1 min-w-[200px]"
             />
 
           </div>
 
           {/* TABELA ARQUIVADOS */}
 
-          <div className="bg-gray-800 p-6 rounded-xl">
+          <div className="bg-gray-800 p-4 md:p-6 rounded-xl shadow-lg border border-gray-700">
             <h2 className="text-xl font-bold mb-4 text-blue-400">Boletos Arquivados</h2>
 
-            <div className="max-h-[280px] overflow-y-auto pr-2">
+            {/* VISTA MOBILE (CASCATA) */}
+            <div className="lg:hidden space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              {arquivados.map((b) => {
+                const dataVenc = converterData(b.vencimento);
+                return (
+                  <div key={b.id} className="bg-gray-900/40 p-3 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-gray-100 truncate text-sm">{b.empresa}</div>
+                        <div className="text-[10px] text-gray-500">Venc: {dataVenc ? dataVenc.toLocaleDateString() : ""}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-blue-400 text-sm">R$ {formatarReal(b.valorPago || b.valor)}</div>
+                        <div className="text-[10px] text-gray-400">Pago em: {b.dataPagamento ? new Date(b.dataPagamento + "T12:00:00").toLocaleDateString() : "-"}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+                      <div className="flex flex-col">
+                        <span className="text-gray-400 text-[10px]">Banco: {b.banco || "-"}</span>
+                        <span className="text-gray-500 text-[9px]">NF: {b.numeroNF || "-"}</span>
+                      </div>
+
+                      <div className="flex gap-1.5 flex-wrap justify-end">
+                        <button
+                          onClick={() => desarquivar(b)}
+                          className="bg-blue-600 hover:bg-blue-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white"
+                          title="Desarquivar"
+                        >
+                          📤
+                        </button>
+                        
+                        {role === "admin" && (
+                          <>
+                            <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white" title="Editar">✏</button>
+                            <button 
+                              onClick={() => excluir(b)} 
+                              className="bg-red-600 hover:bg-red-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white"
+                              title="Excluir"
+                            >
+                              🗑
+                            </button>
+                          </>
+                        )}
+
+                        <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white" title="Visualizar">📄</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {arquivados.length === 0 && (
+                <div className="text-center py-6 text-gray-400 text-sm">Nenhum boleto arquivado.</div>
+              )}
+            </div>
+
+            {/* VISTA DESKTOP (TABELA) */}
+            <div className="hidden lg:block max-h-[280px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b border-gray-600">
@@ -282,16 +339,21 @@ export default function Arquivados() {
                           >
                             📤
                           </button>
-                          <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
+
+                          {role === "admin" && (
+                            <>
+                              <button onClick={() => abrirEditar(b)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Editar">✏</button>
+                              <button 
+                                onClick={() => excluir(b)} 
+                                className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-medium text-white"
+                                title="Excluir"
+                              >
+                                🗑
+                              </button>
+                            </>
+                          )}
+
                           <button onClick={() => abrirBoleto(b)} className="bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded text-xs font-medium text-white" title="Visualizar">📄</button>
-                          <button 
-                            onClick={() => excluir(b)} 
-                            disabled={role !== "admin"}
-                            className={`${role === "admin" ? "bg-red-600 hover:bg-red-700" : "bg-gray-600 cursor-not-allowed"} px-3 py-1.5 rounded text-xs font-medium text-white`} 
-                            title={role === "admin" ? "Excluir" : "Acesso Restrito"}
-                          >
-                            🗑
-                          </button>
                         </td>
                       </tr>
                     );
