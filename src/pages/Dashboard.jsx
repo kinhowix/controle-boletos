@@ -12,6 +12,7 @@ import {
 } from "../services/boletosService";
 
 import { getBancos, addBanco } from "../services/bancosService";
+import { getNotas } from "../services/notasService";
 import { getSettings } from "../services/settingsService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
@@ -51,6 +52,9 @@ export default function Dashboard() {
   const [boletosProximos, setBoletosProximos] = useState([]);
   const [showAvisoVencimento, setShowAvisoVencimento] = useState(false);
 
+  const [notasAtrasadas, setNotasAtrasadas] = useState([]);
+  const [showAvisoNotas, setShowAvisoNotas] = useState(false);
+
   const inputEmpresaRef = useRef(null);
 
   useEffect(() => {
@@ -58,6 +62,40 @@ export default function Dashboard() {
     carregarBancos();
     carregarConfiguracoes();
   }, []);
+
+  useEffect(() => {
+    if (role === "admin") {
+      verificarNotasAtrasadas();
+    }
+  }, [role]);
+
+  async function verificarNotasAtrasadas() {
+    const avisoMostrado = sessionStorage.getItem("avisoNotasMostrado");
+    if (avisoMostrado) return;
+
+    const dados = await getNotas();
+    if (!dados) return;
+
+    const hojeData = new Date();
+    hojeData.setHours(0, 0, 0, 0);
+
+    const atrasadas = dados.filter(n => {
+      if (n.usadaEmBoleto) return false;
+      const dataNota = converterData(n.data);
+      if (!dataNota) return false;
+      
+      const diffTime = Math.abs(hojeData - dataNota);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      
+      return (hojeData > dataNota) && (diffDays > 15);
+    });
+
+    if (atrasadas.length > 0) {
+      setNotasAtrasadas(atrasadas);
+      setShowAvisoNotas(true);
+      sessionStorage.setItem("avisoNotasMostrado", "true");
+    }
+  }
 
   async function carregarConfiguracoes() {
     const config = await getSettings();
@@ -1027,6 +1065,60 @@ export default function Dashboard() {
               >
                 Entendido
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL AVISO NOTAS ATRASADAS */}
+      {showAvisoNotas && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-gray-800 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-700 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border border-red-500/50">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-red-400 mb-2">
+                Atenção: Notas Atrasadas
+              </h2>
+              <p className="text-gray-300 text-sm md:text-base mb-6 px-4">
+                Existem notas recebidas há <strong>mais de 15 dias</strong> que ainda não foram geradas como boletos.
+              </p>
+
+              <div className="w-full max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 pr-2 scrollbar-thin text-left mb-6">
+                {notasAtrasadas.map(n => {
+                  const dataNota = converterData(n.data);
+                  return (
+                    <div key={n.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-gray-100 truncate text-sm">{n.empresa}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">NF: {n.numeroNF || "-"} | Data: {dataNota ? dataNota.toLocaleDateString() : ""}</div>
+                      </div>
+                      <div className="text-right ml-2 font-bold text-yellow-500">
+                        R$ {formatarReal(n.valor)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setShowAvisoNotas(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAvisoNotas(false);
+                    navigate("/notas");
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm"
+                >
+                  Ver Notas
+                </button>
+              </div>
             </div>
           </div>
         </div>
