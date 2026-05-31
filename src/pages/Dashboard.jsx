@@ -12,6 +12,7 @@ import {
 } from "../services/boletosService";
 
 import { getBancos, addBanco } from "../services/bancosService";
+import { getNotas } from "../services/notasService";
 import { getSettings } from "../services/settingsService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
@@ -51,6 +52,9 @@ export default function Dashboard() {
   const [boletosProximos, setBoletosProximos] = useState([]);
   const [showAvisoVencimento, setShowAvisoVencimento] = useState(false);
 
+  const [notasAtrasadas, setNotasAtrasadas] = useState([]);
+  const [showAvisoNotas, setShowAvisoNotas] = useState(false);
+
   const inputEmpresaRef = useRef(null);
 
   useEffect(() => {
@@ -58,6 +62,40 @@ export default function Dashboard() {
     carregarBancos();
     carregarConfiguracoes();
   }, []);
+
+  useEffect(() => {
+    if (role === "admin") {
+      verificarNotasAtrasadas();
+    }
+  }, [role]);
+
+  async function verificarNotasAtrasadas() {
+    const avisoMostrado = sessionStorage.getItem("avisoNotasMostrado");
+    if (avisoMostrado) return;
+
+    const dados = await getNotas();
+    if (!dados) return;
+
+    const hojeData = new Date();
+    hojeData.setHours(0, 0, 0, 0);
+
+    const atrasadas = dados.filter(n => {
+      if (n.usadaEmBoleto) return false;
+      const dataNota = converterData(n.data);
+      if (!dataNota) return false;
+      
+      const diffTime = Math.abs(hojeData - dataNota);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      
+      return (hojeData > dataNota) && (diffDays > 15);
+    });
+
+    if (atrasadas.length > 0) {
+      setNotasAtrasadas(atrasadas);
+      setShowAvisoNotas(true);
+      sessionStorage.setItem("avisoNotasMostrado", "true");
+    }
+  }
 
   async function carregarConfiguracoes() {
     const config = await getSettings();
@@ -572,7 +610,9 @@ export default function Dashboard() {
                             className="bg-green-500 hover:bg-green-600 w-8 h-8 flex items-center justify-center rounded text-xs font-medium text-white shadow-sm"
                             title="WhatsApp"
                           >
-                            <span className="text-[10px]">W</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                              <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -588,7 +628,7 @@ export default function Dashboard() {
             {/* VISTA DESKTOP (TABELA) */}
             <div className="hidden lg:block max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-gray-800 z-10 shadow-sm">
                   <tr className="text-left border-b border-gray-600">
                     <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
                     <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
@@ -657,10 +697,12 @@ export default function Dashboard() {
                           {role === "admin" && (
                             <button
                               onClick={() => enviarWhatsApp(b)}
-                              className="bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm"
+                              className="bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-xs font-medium text-white shadow-sm flex items-center justify-center"
                               title="WhatsApp"
                             >
-                              WhatsApp
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                              </svg>
                             </button>
                           )}
                         </td>
@@ -746,7 +788,7 @@ export default function Dashboard() {
             {/* VISTA DESKTOP (TABELA) */}
             <div className="hidden lg:block max-h-[200px] overflow-y-auto pr-2 scrollbar-thin">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-gray-800 z-10 shadow-sm">
                   <tr className="text-left border-b border-gray-600">
                     <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Empresa</th>
                     <th className="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Valor</th>
@@ -1023,6 +1065,60 @@ export default function Dashboard() {
               >
                 Entendido
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL AVISO NOTAS ATRASADAS */}
+      {showAvisoNotas && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-gray-800 p-6 md:p-8 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-700 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border border-red-500/50">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h2 className="text-2xl font-bold text-red-400 mb-2">
+                Atenção: Notas Atrasadas
+              </h2>
+              <p className="text-gray-300 text-sm md:text-base mb-6 px-4">
+                Existem notas recebidas há <strong>mais de 15 dias</strong> que ainda não foram geradas como boletos.
+              </p>
+
+              <div className="w-full max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 pr-2 scrollbar-thin text-left mb-6">
+                {notasAtrasadas.map(n => {
+                  const dataNota = converterData(n.data);
+                  return (
+                    <div key={n.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-gray-100 truncate text-sm">{n.empresa}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">NF: {n.numeroNF || "-"} | Data: {dataNota ? dataNota.toLocaleDateString() : ""}</div>
+                      </div>
+                      <div className="text-right ml-2 font-bold text-yellow-500">
+                        R$ {formatarReal(n.valor)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setShowAvisoNotas(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAvisoNotas(false);
+                    navigate("/notas");
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm"
+                >
+                  Ver Notas
+                </button>
+              </div>
             </div>
           </div>
         </div>
