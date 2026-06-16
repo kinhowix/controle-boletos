@@ -7,6 +7,7 @@ import Grafico from "./pages/Grafico";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Arquivados from "./pages/Arquivados";
+import Backup from "./pages/Backup";
 import PrivateRoute from "./components/auth/PrivateRoute";
 import AdminRoute from "./components/auth/AdminRoute";
 import Migracao from "./pages/Migracao";
@@ -88,6 +89,15 @@ export default function App() {
           <PrivateRoute>
             <Arquivados />
           </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/backup"
+        element={
+          <AdminRoute>
+            <Backup />
+          </AdminRoute>
         }
       />
 

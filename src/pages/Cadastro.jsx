@@ -3,6 +3,7 @@ import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, secondaryAuth } from "../services/firebase";
 import { Link } from "react-router-dom";
 import { getUsers, setUserRole, deleteUserDoc } from "../services/usersService";
+import { getSettings, updateSettings } from "../services/settingsService";
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
@@ -16,9 +17,45 @@ export default function Cadastro() {
   const [erro, setErro] = useState(null);
   const [carregando, setCarregando] = useState(false);
 
+  // Senha de Backup
+  const [senhaBackup, setSenhaBackup] = useState("");
+  const [senhaBackupConfirm, setSenhaBackupConfirm] = useState("");
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
+  const [msgSenha, setMsgSenha] = useState(null);
+
   useEffect(() => {
     carregarUsuarios();
+    carregarConfiguracoes();
   }, []);
+
+  async function carregarConfiguracoes() {
+    const config = await getSettings();
+    if (config?.senhaBackup) {
+      setSenhaBackup(config.senhaBackup);
+      setSenhaBackupConfirm(config.senhaBackup);
+    }
+  }
+
+  async function salvarSenhaBackup(e) {
+    e.preventDefault();
+    setMsgSenha(null);
+    if (senhaBackup.length < 4) {
+      setMsgSenha({ tipo: "erro", texto: "A senha deve ter pelo menos 4 caracteres." });
+      return;
+    }
+    if (senhaBackup !== senhaBackupConfirm) {
+      setMsgSenha({ tipo: "erro", texto: "As senhas não coincidem." });
+      return;
+    }
+    setSalvandoSenha(true);
+    const ok = await updateSettings({ senhaBackup });
+    setSalvandoSenha(false);
+    if (ok) {
+      setMsgSenha({ tipo: "ok", texto: "Senha de backup salva com sucesso!" });
+    } else {
+      setMsgSenha({ tipo: "erro", texto: "Erro ao salvar. Tente novamente." });
+    }
+  }
 
   async function carregarUsuarios() {
     const lista = await getUsers();
@@ -255,6 +292,73 @@ export default function Cadastro() {
               </div>
             </div>
           </div>
+
+          {/* SEÇÃO SENHA DE BACKUP */}
+          <div className="mt-8">
+            <div className="bg-gray-800 border border-emerald-800/40 rounded-2xl shadow-xl overflow-hidden">
+              <div className="px-6 py-4 bg-emerald-900/20 border-b border-emerald-800/30 flex items-center gap-3">
+                <span className="text-2xl">🔐</span>
+                <div>
+                  <h2 className="text-lg font-bold text-emerald-400">Senha de Backup</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Esta senha protege o acesso à página de geração de backup em Excel.
+                    Apenas administradores com esta senha poderão exportar os dados.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <form onSubmit={salvarSenhaBackup} className="flex flex-col md:flex-row gap-4 items-end">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">Nova Senha de Backup</label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 4 caracteres"
+                      className="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-white placeholder-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={senhaBackup}
+                      onChange={(e) => { setSenhaBackup(e.target.value); setMsgSenha(null); }}
+                      required
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">Confirmar Senha</label>
+                    <input
+                      type="password"
+                      placeholder="Repita a senha"
+                      className="w-full bg-gray-900 border border-gray-700 p-3 rounded-xl text-white placeholder-gray-500
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      value={senhaBackupConfirm}
+                      onChange={(e) => { setSenhaBackupConfirm(e.target.value); setMsgSenha(null); }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={salvandoSenha}
+                    className={`px-6 py-3 rounded-xl font-bold text-white transition-all shadow-lg whitespace-nowrap ${
+                      salvandoSenha
+                        ? "bg-gray-600 cursor-not-allowed opacity-50"
+                        : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transform hover:-translate-y-0.5"
+                    }`}
+                  >
+                    {salvandoSenha ? "Salvando..." : "💾 Salvar Senha"}
+                  </button>
+                </form>
+
+                {msgSenha && (
+                  <div className={`mt-4 p-3 rounded-lg text-sm ${
+                    msgSenha.tipo === "ok"
+                      ? "bg-emerald-700/30 text-emerald-300 border border-emerald-600/40"
+                      : "bg-red-700/30 text-red-300 border border-red-600/40"
+                  }`}>
+                    {msgSenha.tipo === "ok" ? "✅" : "❌"} {msgSenha.texto}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
