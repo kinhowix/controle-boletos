@@ -81,6 +81,9 @@ export default function Sidebar() {
               👤 Cadastro
             </Link>
 
+            <Link to="/backup" className={linkClass("/backup")}>
+              📥 Backup Excel
+            </Link>
           </>
         )}
 
