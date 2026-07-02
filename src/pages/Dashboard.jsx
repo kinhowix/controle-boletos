@@ -87,7 +87,7 @@ export default function Dashboard() {
       const diffTime = Math.abs(hojeData - dataNota);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
       
-      return (hojeData > dataNota) && (diffDays > 15);
+      return (hojeData > dataNota) && (diffDays >= 20);
     });
 
     if (atrasadas.length > 0) {
