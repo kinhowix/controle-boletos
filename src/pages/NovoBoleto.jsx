@@ -5,7 +5,7 @@ import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
 import { useAuth } from "../context/AuthContext";
 
-import { addBoleto, existeNota } from "../services/boletosService";
+import { addBoleto, existeBoletoNoMes, existeNota } from "../services/boletosService";
 
 import {
   getEmpresas,
@@ -194,6 +194,18 @@ export default function NovoBoleto() {
           dataParcela.setMonth(dataBase.getMonth() + index);
         }
 
+
+        const jaCadastrado = await existeBoletoNoMes({
+          empresaId,
+          valor: valorParcela,
+          vencimento: dataParcela,
+        });
+
+        if (jaCadastrado) {
+          alert(`Este boleto já foi cadastrado para ${empresaNome} com o mesmo valor e vencimento neste mês.`);
+          setSalvando(false);
+          return;
+        }
 
         await addBoleto({
           empresaId,
