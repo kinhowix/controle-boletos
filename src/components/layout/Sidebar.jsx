@@ -82,7 +82,7 @@ export default function Sidebar() {
             </Link>
 
             <Link to="/backup" className={linkClass("/backup")}>
-              📥 Backup Excel
+              ⚙️ Backup / Boletos Fixos
             </Link>
           </>
         )}

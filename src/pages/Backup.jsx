@@ -6,6 +6,8 @@ import { exportarExcel, obterEstatisticas } from "../utils/exportarExcel";
 import { formatarReal } from "../utils/formatCurrency";
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
+import { getBoletosFixos, addBoletoFixo, updateBoletoFixo, deleteBoletoFixo } from "../services/boletosFixosService";
+import { getEmpresas } from "../services/empresasService";
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril",
@@ -16,18 +18,25 @@ const MESES = [
 export default function Backup() {
   const { role } = useAuth();
 
-  // Autenticação por senha
-  const [senhaDigitada, setSenhaDigitada] = useState("");
-  const [autenticado, setAutenticado] = useState(false);
-  const [erroSenha, setErroSenha] = useState(false);
-  const [senhaVisivel, setSenhaVisivel] = useState(false);
-
   // Dados
   const [boletos, setBoletos] = useState([]);
   const [carregando, setCarregando] = useState(false);
-  const [senhaBackup, setSenhaBackup] = useState("");
   const [gerando, setGerando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+
+  // Boletos Fixos
+  const [tabAtiva, setTabAtiva] = useState("backup"); // "backup" ou "boletosFixos"
+  const [boletosFixos, setBoletosFixos] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [boletosFixosFaltantes, setBoletosFixosFaltantes] = useState([]);
+  const [showAvisoBoletosFixos, setShowAvisoBoletosFixos] = useState(false);
+
+  // Form de Boleto Fixo
+  const [nomeFixo, setNomeFixo] = useState("");
+  const [empresaFixoId, setEmpresaFixoId] = useState("");
+  const [descricaoFixo, setDescricaoFixo] = useState("");
+  const [editandoFixoId, setEditandoFixoId] = useState(null);
+  const [salvandoFixo, setSalvandoFixo] = useState(false);
 
   // Filtros de período (para aba "A Vencer")
   const anoAtual = new Date().getFullYear();
@@ -42,39 +51,237 @@ export default function Backup() {
   const anos = Array.from({ length: 10 }, (_, i) => anoAtual - 2 + i);
 
   useEffect(() => {
-    if (autenticado) {
-      carregarDados();
-    }
-  }, [autenticado]);
+    carregarDados();
+  }, []);
 
   async function carregarDados() {
     setCarregando(true);
-    const [dadosBoletos, config] = await Promise.all([getBoletos(), getSettings()]);
-    setBoletos(dadosBoletos || []);
-    setSenhaBackup(config?.senhaBackup || "");
-    setCarregando(false);
+    try {
+      const [dadosBoletos, dadosBoletosFixos, dadosEmpresas] = await Promise.all([
+        getBoletos(),
+        getBoletosFixos(),
+        getEmpresas(),
+      ]);
+      const todosBoletos = dadosBoletos || [];
+      const todosFixos = dadosBoletosFixos || [];
+      setBoletos(todosBoletos);
+      setBoletosFixos(todosFixos);
+      setEmpresas(dadosEmpresas || []);
+      
+      // Executa verificação de boletos fixos faltantes
+      verificarBoletosFixosFaltantes(todosFixos, todosBoletos);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setCarregando(false);
+    }
   }
 
-  async function verificarSenha(e) {
+  function verificarBoletosFixosFaltantes(templates, todosBoletos) {
+    const avisoMostrado = sessionStorage.getItem("avisoBoletosFixosMostrado");
+    if (avisoMostrado) return;
+
+    if (!templates || templates.length === 0) return;
+
+    const hoje = new Date();
+    const mesAtualIndex = hoje.getMonth();
+    const anoAtualVal = hoje.getFullYear();
+
+    const faltantes = templates.filter(fixo => {
+      const lancado = todosBoletos.some(b => {
+        const venc = converterDataLocal(b.vencimento);
+        if (!venc) return false;
+
+        const mesmoMes = venc.getMonth() === mesAtualIndex && venc.getFullYear() === anoAtualVal;
+        if (!mesmoMes) return false;
+
+        const mesmaEmpresa = b.empresaId === fixo.empresaId;
+        if (!mesmaEmpresa) return false;
+
+        if (fixo.descricao && fixo.descricao.trim() !== "") {
+          const descBoleto = (b.descricao || "").toLowerCase();
+          const descFixo = fixo.descricao.toLowerCase().trim();
+          return descBoleto.includes(descFixo);
+        }
+
+        return true;
+      });
+
+      return !lancado;
+    });
+
+    if (faltantes.length > 0) {
+      setBoletosFixosFaltantes(faltantes);
+      setShowAvisoBoletosFixos(true);
+      sessionStorage.setItem("avisoBoletosFixosMostrado", "true");
+    }
+  }
+
+  async function salvarBoletoFixo(e) {
     e.preventDefault();
-    setErroSenha(false);
-
-    // Busca a senha configurada no Firestore
-    const config = await getSettings();
-    const senhaCorreta = config?.senhaBackup || "";
-
-    if (!senhaCorreta) {
-      alert("⚠️ Nenhuma senha de backup configurada. Configure-a na página de Cadastro antes de usar esta função.");
+    if (!nomeFixo.trim()) {
+      alert("Por favor, digite o nome do boleto fixo (ex: Aluguel).");
+      return;
+    }
+    if (!empresaFixoId) {
+      alert("Por favor, selecione a empresa.");
       return;
     }
 
-    if (senhaDigitada === senhaCorreta) {
-      setAutenticado(true);
-    } else {
-      setErroSenha(true);
-      setSenhaDigitada("");
+    setSalvandoFixo(true);
+
+    const emp = empresas.find(e => e.id === empresaFixoId);
+    const empresaNome = emp ? (emp.fantasia || emp.razao) : "";
+
+    const dados = {
+      nome: nomeFixo.trim(),
+      empresaId: empresaFixoId,
+      empresaNome,
+      descricao: descricaoFixo.trim()
+    };
+
+    try {
+      if (editandoFixoId) {
+        await updateBoletoFixo(editandoFixoId, dados);
+        alert("Boleto fixo atualizado com sucesso!");
+      } else {
+        await addBoletoFixo(dados);
+        alert("Boleto fixo cadastrado com sucesso!");
+      }
+
+      // Limpar formulário
+      setNomeFixo("");
+      setEmpresaFixoId("");
+      setDescricaoFixo("");
+      setEditandoFixoId(null);
+
+      // Recarregar
+      const novosFixos = await getBoletosFixos();
+      setBoletosFixos(novosFixos || []);
+      
+      // Re-executar a verificação
+      const hoje = new Date();
+      const mesAtualIndex = hoje.getMonth();
+      const anoAtualVal = hoje.getFullYear();
+
+      const faltantes = (novosFixos || []).filter(fixo => {
+        const lancado = boletos.some(b => {
+          const venc = converterDataLocal(b.vencimento);
+          if (!venc) return false;
+
+          const mesmoMes = venc.getMonth() === mesAtualIndex && venc.getFullYear() === anoAtualVal;
+          if (!mesmoMes) return false;
+
+          const mesmaEmpresa = b.empresaId === fixo.empresaId;
+          if (!mesmaEmpresa) return false;
+
+          if (fixo.descricao && fixo.descricao.trim() !== "") {
+            const descBoleto = (b.descricao || "").toLowerCase();
+            const descFixo = fixo.descricao.toLowerCase().trim();
+            return descBoleto.includes(descFixo);
+          }
+
+          return true;
+        });
+
+        return !lancado;
+      });
+      setBoletosFixosFaltantes(faltantes);
+
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar boleto fixo.");
+    } finally {
+      setSalvandoFixo(false);
     }
   }
+
+  function iniciarEdicaoFixo(fixo) {
+    setEditandoFixoId(fixo.id);
+    setNomeFixo(fixo.nome);
+    setEmpresaFixoId(fixo.empresaId);
+    setDescricaoFixo(fixo.descricao || "");
+  }
+
+  function cancelarEdicaoFixo() {
+    setEditandoFixoId(null);
+    setNomeFixo("");
+    setEmpresaFixoId("");
+    setDescricaoFixo("");
+  }
+
+  async function handleExcluirFixo(id) {
+    if (!window.confirm("Deseja realmente excluir este boleto fixo? Ele deixará de ser monitorado.")) return;
+
+    try {
+      await deleteBoletoFixo(id);
+      
+      // Recarregar
+      const novosFixos = await getBoletosFixos();
+      setBoletosFixos(novosFixos || []);
+
+      // Re-executar verificação
+      const hoje = new Date();
+      const mesAtualIndex = hoje.getMonth();
+      const anoAtualVal = hoje.getFullYear();
+
+      const faltantes = (novosFixos || []).filter(fixo => {
+        const lancado = boletos.some(b => {
+          const venc = converterDataLocal(b.vencimento);
+          if (!venc) return false;
+
+          const mesmoMes = venc.getMonth() === mesAtualIndex && venc.getFullYear() === anoAtualVal;
+          if (!mesmoMes) return false;
+
+          const mesmaEmpresa = b.empresaId === fixo.empresaId;
+          if (!mesmaEmpresa) return false;
+
+          if (fixo.descricao && fixo.descricao.trim() !== "") {
+            const descBoleto = (b.descricao || "").toLowerCase();
+            const descFixo = fixo.descricao.toLowerCase().trim();
+            return descBoleto.includes(descFixo);
+          }
+
+          return true;
+        });
+
+        return !lancado;
+      });
+      setBoletosFixosFaltantes(faltantes);
+      
+      alert("Boleto fixo removido!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao excluir boleto fixo.");
+    }
+  }
+
+  const statusFixoNoMes = (fixo) => {
+    const hoje = new Date();
+    const mesAtualIndex = hoje.getMonth();
+    const anoAtualVal = hoje.getFullYear();
+
+    const boletoCorrespondente = boletos.find(b => {
+      const venc = converterDataLocal(b.vencimento);
+      if (!venc) return false;
+
+      const mesmoMes = venc.getMonth() === mesAtualIndex && venc.getFullYear() === anoAtualVal;
+      if (!mesmoMes) return false;
+
+      const mesmaEmpresa = b.empresaId === fixo.empresaId;
+      if (!mesmaEmpresa) return false;
+
+      if (fixo.descricao && fixo.descricao.trim() !== "") {
+        const descBoleto = (b.descricao || "").toLowerCase();
+        const descFixo = fixo.descricao.toLowerCase().trim();
+        return descBoleto.includes(descFixo);
+      }
+
+      return true;
+    });
+
+    return boletoCorrespondente ? { lancado: true, boleto: boletoCorrespondente } : { lancado: false };
+  };
 
   function calcularPeriodo() {
     const inicio = new Date(anoInicio, mesInicio - 1, 1);
@@ -103,97 +310,6 @@ export default function Backup() {
   }
 
   // ============================================================
-  // TELA DE AUTENTICAÇÃO
-  // ============================================================
-  if (!autenticado) {
-    return (
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 bg-gray-900 text-white min-h-screen">
-          <Header />
-          <div className="flex items-center justify-center min-h-[calc(100vh-64px)] p-6">
-            <div className="w-full max-w-md">
-              {/* Card */}
-              <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
-                {/* Topo decorativo */}
-                <div className="bg-gradient-to-r from-emerald-700 to-teal-600 p-6 text-center">
-                  <div className="text-5xl mb-2">🛡️</div>
-                  <h1 className="text-xl font-bold text-white">Área Restrita</h1>
-                  <p className="text-emerald-200 text-sm mt-1">Backup do Sistema</p>
-                </div>
-
-                <div className="p-8">
-                  <p className="text-gray-400 text-sm text-center mb-6">
-                    Digite a <span className="text-white font-semibold">senha master</span> para acessar
-                    a geração de backup em Excel.
-                  </p>
-
-                  <form onSubmit={verificarSenha} className="space-y-4">
-                    <div className="relative">
-                      <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
-                        Senha Master
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="input-senha-backup"
-                          type={senhaVisivel ? "text" : "password"}
-                          value={senhaDigitada}
-                          onChange={(e) => {
-                            setSenhaDigitada(e.target.value);
-                            setErroSenha(false);
-                          }}
-                          placeholder="••••••••"
-                          className={`w-full bg-gray-900 border ${
-                            erroSenha ? "border-red-500" : "border-gray-700"
-                          } p-3 pr-12 rounded-xl text-white placeholder-gray-600
-                            focus:outline-none focus:ring-2 ${
-                              erroSenha ? "focus:ring-red-500" : "focus:ring-emerald-500"
-                            } transition`}
-                          autoFocus
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSenhaVisivel(!senhaVisivel)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
-                          tabIndex={-1}
-                        >
-                          {senhaVisivel ? "🙈" : "👁️"}
-                        </button>
-                      </div>
-
-                      {erroSenha && (
-                        <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
-                          ❌ Senha incorreta. Tente novamente.
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      id="btn-entrar-backup"
-                      type="submit"
-                      className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500
-                        hover:to-teal-500 text-white font-bold py-3 rounded-xl transition-all
-                        transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg
-                        shadow-emerald-900/30 flex items-center justify-center gap-2"
-                    >
-                      🔓 Entrar
-                    </button>
-                  </form>
-                </div>
-              </div>
-
-              <p className="text-center text-gray-600 text-xs mt-4">
-                Acesso disponível apenas para administradores
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
   // TELA PRINCIPAL DE BACKUP
   // ============================================================
   return (
@@ -206,13 +322,37 @@ export default function Backup() {
 
           {/* Cabeçalho */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="text-4xl">📊</div>
+            <div className="text-4xl">⚙️</div>
             <div>
-              <h1 className="text-3xl font-bold text-emerald-400">Backup do Sistema</h1>
+              <h1 className="text-3xl font-bold text-emerald-400">Configurações Master</h1>
               <p className="text-gray-400 text-sm mt-0.5">
-                Gere um arquivo Excel com todos os boletos do sistema
+                Backup do sistema e gerenciamento de boletos fixos mensais
               </p>
             </div>
+          </div>
+
+          {/* Navegação por Abas */}
+          <div className="flex gap-4 border-b border-gray-800 mb-8 pb-px">
+            <button
+              onClick={() => setTabAtiva("backup")}
+              className={`py-3 px-1 font-semibold text-sm border-b-2 transition-all ${
+                tabAtiva === "backup"
+                  ? "border-emerald-500 text-emerald-400 font-bold"
+                  : "border-transparent text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              📊 Backup & Estatísticas
+            </button>
+            <button
+              onClick={() => setTabAtiva("boletosFixos")}
+              className={`py-3 px-1 font-semibold text-sm border-b-2 transition-all ${
+                tabAtiva === "boletosFixos"
+                  ? "border-emerald-500 text-emerald-400 font-bold"
+                  : "border-transparent text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              📋 Gerenciar Boletos Fixos
+            </button>
           </div>
 
           {carregando ? (
@@ -224,7 +364,7 @@ export default function Backup() {
               </svg>
               Carregando dados...
             </div>
-          ) : (
+          ) : tabAtiva === "backup" ? (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* ============ PAINEL ESQUERDO: FILTROS ============ */}
@@ -373,10 +513,10 @@ export default function Backup() {
                       boletos={boletos}
                       filtro={(b) => {
                         if (b.pago || b.arquivado) return false;
-                        const { inicio, fim } = calcularPeriodo();
+                        const { inicio, fmt } = { inicio: calcularPeriodo().inicio, fmt: calcularPeriodo().fim };
                         const d = converterDataLocal(b.vencimento);
                         if (!d) return false;
-                        const fimDia = new Date(fim);
+                        const fimDia = new Date(fmt);
                         fimDia.setHours(23, 59, 59, 999);
                         return d >= inicio && d <= fimDia;
                       }}
@@ -426,6 +566,214 @@ export default function Backup() {
                     Nenhum boleto encontrado no sistema.
                   </div>
                 )}
+              </div>
+            </div>
+          ) : (
+            // ==================== TELA DE GERENCIAMENTO DE BOLETOS FIXOS ====================
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* ============ PAINEL ESQUERDO: CADASTRO ============ */}
+              <div className="lg:col-span-1 font-sans">
+                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+                  <h2 className="font-bold text-yellow-400 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    {editandoFixoId ? "✏️ Editar Boleto Fixo" : "➕ Novo Boleto Fixo"}
+                  </h2>
+                  <p className="text-gray-500 text-xs mb-5">
+                    Cadastre os boletos que vencem todo mês para monitorar se foram lançados.
+                  </p>
+
+                  <form onSubmit={salvarBoletoFixo} className="space-y-4">
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase mb-1.5 font-semibold">Nome do Aviso (ex: Aluguel)</label>
+                      <input
+                        type="text"
+                        value={nomeFixo}
+                        onChange={(e) => setNomeFixo(e.target.value)}
+                        placeholder="Ex: Aluguel, Plano de Saúde, CDL"
+                        className="w-full bg-gray-700 border border-gray-600 p-2.5 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-gray-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase mb-1.5 font-semibold">Empresa Associada</label>
+                      <select
+                        value={empresaFixoId}
+                        onChange={(e) => setEmpresaFixoId(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 p-2.5 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                        required
+                      >
+                        <option value="">Selecione uma empresa...</option>
+                        {empresas.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.fantasia || emp.razao}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-400 uppercase mb-1.5 font-semibold">Filtro de Descrição (Opcional)</label>
+                      <input
+                        type="text"
+                        value={descricaoFixo}
+                        onChange={(e) => setDescricaoFixo(e.target.value)}
+                        placeholder="Palavra-chave na descrição do boleto"
+                        className="w-full bg-gray-700 border border-gray-600 p-2.5 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-gray-500"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Se vazio, qualquer lançamento para esta empresa no mês conta. Se preenchido, filtra pela descrição do boleto.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={salvandoFixo}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition shadow-lg active:scale-95 disabled:opacity-50"
+                      >
+                        {salvandoFixo ? "Salvando..." : editandoFixoId ? "Salvar" : "Cadastrar"}
+                      </button>
+                      {editandoFixoId && (
+                        <button
+                          type="button"
+                          onClick={cancelarEdicaoFixo}
+                          className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* ============ PAINEL DIREITO: LISTAGEM ============ */}
+              <div className="lg:col-span-2 space-y-5">
+                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-5 shadow-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-bold text-yellow-400 flex items-center gap-2 text-sm uppercase tracking-wider">
+                      📋 Boletos Fixos Monitorados
+                    </h2>
+                    <span className="bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full text-xs font-bold border border-emerald-500/20">
+                      {boletosFixos.length} total
+                    </span>
+                  </div>
+
+                  {boletosFixos.length === 0 ? (
+                    <div className="text-center py-10 text-gray-500 italic text-sm">
+                      Nenhum boleto fixo cadastrado para monitoramento.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-900/50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Nome do Aviso</th>
+                            <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Empresa</th>
+                            <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Filtro Descrição</th>
+                            <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold text-center">Status este Mês</th>
+                            <th className="px-4 py-3 text-center text-gray-400 uppercase tracking-wide font-semibold">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700/40">
+                          {boletosFixos.map((fixo) => {
+                            const status = statusFixoNoMes(fixo);
+                            return (
+                              <tr key={fixo.id} className="hover:bg-gray-700/20 transition-colors">
+                                <td className="px-4 py-3 font-semibold text-gray-200">{fixo.nome}</td>
+                                <td className="px-4 py-3 text-gray-300">{fixo.empresaNome}</td>
+                                <td className="px-4 py-3 text-gray-400 italic">{fixo.descricao || "Qualquer"}</td>
+                                <td className="px-4 py-3 text-center">
+                                  {status.lancado ? (
+                                    <div className="inline-flex flex-col items-center">
+                                      <span className="bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                        Lançado
+                                      </span>
+                                      <span className="text-[9px] text-gray-500 mt-0.5">
+                                        R$ {formatarReal(status.boleto.valor)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                      Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex gap-2 justify-center">
+                                    <button
+                                      onClick={() => iniciarEdicaoFixo(fixo)}
+                                      className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                                      title="Editar"
+                                    >
+                                      ✏️
+                                    </button>
+                                    <button
+                                      onClick={() => handleExcluirFixo(fixo.id)}
+                                      className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                                      title="Excluir"
+                                    >
+                                      🗑️
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL AVISO BOLETOS FIXOS FALTANTES */}
+          {showAvisoBoletosFixos && boletosFixosFaltantes.length > 0 && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-3 md:p-4 backdrop-blur-sm">
+              <div className="bg-gray-800 border border-red-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="bg-gradient-to-r from-red-600 to-red-500 p-3 md:p-4 flex justify-between items-center">
+                  <h2 className="text-white font-bold flex items-center gap-2 text-sm md:text-base">
+                    <span className="text-lg md:text-xl">🚨</span> Boletos Fixos Faltantes no Mês
+                  </h2>
+                  <button
+                    onClick={() => setShowAvisoBoletosFixos(false)}
+                    className="bg-black/20 hover:bg-black/40 text-white rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center font-bold transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-4 md:p-6">
+                  <p className="text-gray-300 text-xs md:text-sm mb-4">
+                    Os seguintes boletos fixos cadastrados ainda não foram lançados no mês corrente:
+                  </p>
+
+                  <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 md:space-y-3 pr-2 scrollbar-thin">
+                    {boletosFixosFaltantes.map(fixo => (
+                      <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
+                          {fixo.descricao && (
+                            <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
+                          )}
+                        </div>
+                        <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                          Pendente
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setShowAvisoBoletosFixos(false)}
+                    className="w-full mt-4 md:mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 md:py-3 rounded-xl transition-all shadow-lg active:scale-95 text-sm md:text-base"
+                  >
+                    Entendido
+                  </button>
+                </div>
               </div>
             </div>
           )}
