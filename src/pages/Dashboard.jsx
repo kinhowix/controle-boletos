@@ -14,6 +14,7 @@ import {
 import { getBancos, addBanco } from "../services/bancosService";
 import { getNotas } from "../services/notasService";
 import { getSettings } from "../services/settingsService";
+import { getBoletosFixos } from "../services/boletosFixosService";
 
 import { aplicarMascaraReal, parseReal, formatarReal } from "../utils/formatCurrency";
 import { cleanLinhaDigitavel } from "../utils/formatDigitavel";
@@ -55,6 +56,9 @@ export default function Dashboard() {
   const [notasAtrasadas, setNotasAtrasadas] = useState([]);
   const [showAvisoNotas, setShowAvisoNotas] = useState(false);
 
+  const [boletosFixosFaltantes, setBoletosFixosFaltantes] = useState([]);
+  const [showAvisoBoletosFixos, setShowAvisoBoletosFixos] = useState(false);
+
   const inputEmpresaRef = useRef(null);
 
   useEffect(() => {
@@ -66,8 +70,56 @@ export default function Dashboard() {
   useEffect(() => {
     if (role === "admin") {
       verificarNotasAtrasadas();
+      verificarBoletosFixosFaltantes();
     }
   }, [role]);
+
+  async function verificarBoletosFixosFaltantes() {
+    const avisoMostrado = sessionStorage.getItem("avisoBoletosFixosMostrado");
+    if (avisoMostrado) return;
+
+    try {
+      const templates = await getBoletosFixos();
+      if (!templates || templates.length === 0) return;
+
+      const todosBoletos = (await getBoletos()) || [];
+
+      const hoje = new Date();
+      const mesAtualIndex = hoje.getMonth();
+      const anoAtualVal = hoje.getFullYear();
+
+      const faltantes = templates.filter(fixo => {
+        const lancado = todosBoletos.some(b => {
+          const venc = converterData(b.vencimento);
+          if (!venc) return false;
+
+          const mesmoMes = venc.getMonth() === mesAtualIndex && venc.getFullYear() === anoAtualVal;
+          if (!mesmoMes) return false;
+
+          const mesmaEmpresa = b.empresaId === fixo.empresaId;
+          if (!mesmaEmpresa) return false;
+
+          if (fixo.descricao && fixo.descricao.trim() !== "") {
+            const descBoleto = (b.descricao || "").toLowerCase();
+            const descFixo = fixo.descricao.toLowerCase().trim();
+            return descBoleto.includes(descFixo);
+          }
+
+          return true;
+        });
+
+        return !lancado;
+      });
+
+      if (faltantes.length > 0) {
+        setBoletosFixosFaltantes(faltantes);
+        setShowAvisoBoletosFixos(true);
+        sessionStorage.setItem("avisoBoletosFixosMostrado", "true");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar boletos fixos faltantes:", error);
+    }
+  }
 
   async function verificarNotasAtrasadas() {
     const avisoMostrado = sessionStorage.getItem("avisoNotasMostrado");
@@ -1117,6 +1169,66 @@ export default function Dashboard() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm"
                 >
                   Ver Notas
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL AVISO BOLETOS FIXOS FALTANTES */}
+      {showAvisoBoletosFixos && boletosFixosFaltantes.length > 0 && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[80] p-3 md:p-4 backdrop-blur-sm">
+          <div className="bg-gray-800 border border-red-500/30 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="bg-gradient-to-r from-red-600 to-red-500 p-3 md:p-4 flex justify-between items-center">
+              <h2 className="text-white font-bold flex items-center gap-2 text-sm md:text-base">
+                <span className="text-lg md:text-xl">🚨</span> Boletos Fixos Faltantes no Mês
+              </h2>
+              <button
+                onClick={() => setShowAvisoBoletosFixos(false)}
+                className="bg-black/20 hover:bg-black/40 text-white rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 md:p-6">
+              <p className="text-gray-300 text-xs md:text-sm mb-4">
+                Os seguintes boletos fixos cadastrados ainda não foram lançados no mês corrente:
+              </p>
+
+              <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 md:space-y-3 pr-2 scrollbar-thin">
+                {boletosFixosFaltantes.map(fixo => (
+                  <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
+                      {fixo.descricao && (
+                        <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
+                      )}
+                    </div>
+                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                      Pendente
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex w-full gap-3 mt-4 md:mt-6">
+                <button
+                  onClick={() => setShowAvisoBoletosFixos(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2.5 md:py-3 rounded-xl transition-all shadow-lg text-sm md:text-base cursor-pointer"
+                >
+                  Entendido
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAvisoBoletosFixos(false);
+                    navigate("/backup");
+                  }}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 md:py-3 rounded-xl transition-all shadow-lg text-sm md:text-base cursor-pointer"
+                >
+                  Ver Boletos Fixos
                 </button>
               </div>
             </div>
