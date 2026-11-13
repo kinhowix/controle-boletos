@@ -35,6 +35,7 @@ export default function Backup() {
   const [nomeFixo, setNomeFixo] = useState("");
   const [empresaFixoId, setEmpresaFixoId] = useState("");
   const [descricaoFixo, setDescricaoFixo] = useState("");
+  const [vencimentoFixo, setVencimentoFixo] = useState("");
   const [editandoFixoId, setEditandoFixoId] = useState(null);
   const [salvandoFixo, setSalvandoFixo] = useState(false);
 
@@ -137,7 +138,8 @@ export default function Backup() {
       nome: nomeFixo.trim(),
       empresaId: empresaFixoId,
       empresaNome,
-      descricao: descricaoFixo.trim()
+      descricao: descricaoFixo.trim(),
+      vencimento: vencimentoFixo
     };
 
     try {
@@ -153,6 +155,7 @@ export default function Backup() {
       setNomeFixo("");
       setEmpresaFixoId("");
       setDescricaoFixo("");
+      setVencimentoFixo("");
       setEditandoFixoId(null);
 
       // Recarregar
@@ -196,11 +199,19 @@ export default function Backup() {
     }
   }
 
+  function extrairDiaVencimento(valor) {
+    if (!valor) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return valor.split("-")[2];
+    if (/^\d{1,2}\/\d{1,2}$/.test(valor)) return valor.split("/")[0];
+    return String(valor).replace(/\D/g, "").slice(0, 2);
+  }
+
   function iniciarEdicaoFixo(fixo) {
     setEditandoFixoId(fixo.id);
     setNomeFixo(fixo.nome);
     setEmpresaFixoId(fixo.empresaId);
     setDescricaoFixo(fixo.descricao || "");
+    setVencimentoFixo(extrairDiaVencimento(fixo.vencimento));
   }
 
   function cancelarEdicaoFixo() {
@@ -208,6 +219,7 @@ export default function Backup() {
     setNomeFixo("");
     setEmpresaFixoId("");
     setDescricaoFixo("");
+    setVencimentoFixo("");
   }
 
   async function handleExcluirFixo(id) {
@@ -612,6 +624,19 @@ export default function Backup() {
                     </div>
 
                     <div>
+                      <label className="block text-xs text-gray-400 uppercase mb-1.5 font-semibold">Dia de Vencimento</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        placeholder="Ex: 15"
+                        value={vencimentoFixo}
+                        onChange={(e) => setVencimentoFixo(e.target.value.replace(/\D/g, "").slice(0, 2))}
+                        className="w-full bg-gray-700 border border-gray-600 p-2.5 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-gray-500"
+                      />
+                    </div>
+
+                    <div>
                       <label className="block text-xs text-gray-400 uppercase mb-1.5 font-semibold">Filtro de Descrição (Opcional)</label>
                       <input
                         type="text"
@@ -670,6 +695,7 @@ export default function Backup() {
                           <tr>
                             <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Nome do Aviso</th>
                             <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Empresa</th>
+                            <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Vencimento</th>
                             <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold">Filtro Descrição</th>
                             <th className="px-4 py-3 text-left text-gray-400 uppercase tracking-wide font-semibold text-center">Status este Mês</th>
                             <th className="px-4 py-3 text-center text-gray-400 uppercase tracking-wide font-semibold">Ações</th>
@@ -678,10 +704,12 @@ export default function Backup() {
                         <tbody className="divide-y divide-gray-700/40">
                           {boletosFixos.map((fixo) => {
                             const status = statusFixoNoMes(fixo);
+                            const dataVencFixo = formatarVencimentoFixo(fixo.vencimento);
                             return (
                               <tr key={fixo.id} className="hover:bg-gray-700/20 transition-colors">
                                 <td className="px-4 py-3 font-semibold text-gray-200">{fixo.nome}</td>
                                 <td className="px-4 py-3 text-gray-300">{fixo.empresaNome}</td>
+                                <td className="px-4 py-3 text-gray-300">{dataVencFixo || "-"}</td>
                                 <td className="px-4 py-3 text-gray-400 italic">{fixo.descricao || "Qualquer"}</td>
                                 <td className="px-4 py-3 text-center">
                                   {status.lancado ? (
@@ -751,20 +779,28 @@ export default function Backup() {
                   </p>
 
                   <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 md:space-y-3 pr-2 scrollbar-thin">
-                    {boletosFixosFaltantes.map(fixo => (
-                      <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
-                          {fixo.descricao && (
-                            <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
-                          )}
+                    {boletosFixosFaltantes.map(fixo => {
+                      const dataVencFixo = formatarVencimentoFixo(fixo.vencimento);
+                      return (
+                        <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
+                            {dataVencFixo && (
+                              <div className="text-[10px] text-yellow-400 font-semibold mt-0.5">
+                                Vencimento: {dataVencFixo}
+                              </div>
+                            )}
+                            {fixo.descricao && (
+                              <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
+                            )}
+                          </div>
+                          <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                            Pendente
+                          </span>
                         </div>
-                        <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                          Pendente
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <button
@@ -786,6 +822,19 @@ export default function Backup() {
 // ============================================================
 // Componente auxiliar: tabela de prévia
 // ============================================================
+
+function formatarVencimentoFixo(vencimento) {
+  if (!vencimento) return null;
+  let dia = "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(vencimento)) {
+    dia = vencimento.split("-")[2];
+  } else if (/^\d{1,2}\/\d{1,2}$/.test(vencimento)) {
+    dia = vencimento.split("/")[0];
+  } else {
+    dia = String(vencimento).replace(/\D/g, "").slice(0, 2);
+  }
+  return dia ? `Dia ${dia.padStart(2, "0")}` : null;
+}
 
 function converterDataLocal(vencimento) {
   if (!vencimento) return null;
