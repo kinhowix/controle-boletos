@@ -1198,20 +1198,38 @@ export default function Dashboard() {
               </p>
 
               <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto space-y-2 md:space-y-3 pr-2 scrollbar-thin">
-                {boletosFixosFaltantes.map(fixo => (
-                  <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
-                      {fixo.descricao && (
-                        <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
-                      )}
+                {boletosFixosFaltantes.map(fixo => {
+                  let diaVenc = "";
+                  if (fixo.vencimento) {
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(fixo.vencimento)) {
+                      diaVenc = fixo.vencimento.split("-")[2];
+                    } else if (/^\d{1,2}\/\d{1,2}$/.test(fixo.vencimento)) {
+                      diaVenc = fixo.vencimento.split("/")[0];
+                    } else {
+                      diaVenc = String(fixo.vencimento).replace(/\D/g, "").slice(0, 2);
+                    }
+                  }
+                  const dataVencFixo = diaVenc ? `Dia ${diaVenc.padStart(2, "0")}` : null;
+                  return (
+                    <div key={fixo.id} className="bg-gray-900/50 border border-gray-700 p-3 rounded-xl flex justify-between items-center group hover:border-red-500/50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-gray-100 group-hover:text-red-400 transition-colors truncate text-xs md:text-sm">{fixo.nome}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Empresa: {fixo.empresaNome}</div>
+                        {dataVencFixo && (
+                          <div className="text-[10px] text-yellow-400 font-semibold mt-0.5">
+                            Vencimento: {dataVencFixo}
+                          </div>
+                        )}
+                        {fixo.descricao && (
+                          <div className="text-[9px] text-gray-500 mt-0.5">Busca por: "{fixo.descricao}"</div>
+                        )}
+                      </div>
+                      <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                        Pendente
+                      </span>
                     </div>
-                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                      Pendente
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex w-full gap-3 mt-4 md:mt-6">
